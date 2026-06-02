@@ -12,6 +12,10 @@ dist
 dist-ssr
 *.local
 
+# Higgsfield outputs & secrets
+.env
+output/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
