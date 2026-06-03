@@ -1,0 +1,868 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>مولّد البرومبت الاحترافي لـ Claude</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800&display=swap');
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0f0e17;
+      --bg2: #1a1828;
+      --bg3: #231f35;
+      --surface: #2a2640;
+      --border: #3d3860;
+      --purple: #a78bfa;
+      --purple-dark: #7c3aed;
+      --purple-glow: rgba(167,139,250,0.15);
+      --violet: #8b5cf6;
+      --pink: #ec4899;
+      --cyan: #06b6d4;
+      --green: #10b981;
+      --text: #e2e0f0;
+      --text2: #9d9ab8;
+      --text3: #6b6888;
+      --gold: #fbbf24;
+    }
+
+    body {
+      font-family: 'Cairo', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ─── Background Orbs ─── */
+    .bg-orbs {
+      position: fixed; inset: 0; pointer-events: none; z-index: 0;
+      overflow: hidden;
+    }
+    .orb {
+      position: absolute; border-radius: 50%;
+      filter: blur(80px); opacity: 0.12;
+      animation: float 12s ease-in-out infinite;
+    }
+    .orb-1 { width: 500px; height: 500px; background: var(--purple-dark); top: -100px; right: -100px; animation-delay: 0s; }
+    .orb-2 { width: 400px; height: 400px; background: var(--pink); bottom: -80px; left: -80px; animation-delay: -4s; }
+    .orb-3 { width: 300px; height: 300px; background: var(--cyan); top: 40%; left: 30%; animation-delay: -8s; }
+    @keyframes float {
+      0%, 100% { transform: translateY(0) scale(1); }
+      50% { transform: translateY(-30px) scale(1.05); }
+    }
+
+    /* ─── Layout ─── */
+    .container {
+      max-width: 820px;
+      margin: 0 auto;
+      padding: 0 16px 80px;
+      position: relative; z-index: 1;
+    }
+
+    /* ─── Header ─── */
+    header {
+      text-align: center;
+      padding: 52px 0 36px;
+    }
+    .logo-ring {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 72px; height: 72px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--purple-dark), var(--pink));
+      box-shadow: 0 0 40px rgba(124,58,237,0.5);
+      font-size: 32px; margin-bottom: 20px;
+      animation: pulse-ring 3s ease-in-out infinite;
+    }
+    @keyframes pulse-ring {
+      0%, 100% { box-shadow: 0 0 40px rgba(124,58,237,0.5); }
+      50% { box-shadow: 0 0 60px rgba(124,58,237,0.8), 0 0 100px rgba(236,72,153,0.3); }
+    }
+    header h1 {
+      font-size: clamp(1.6rem, 4vw, 2.2rem);
+      font-weight: 800;
+      background: linear-gradient(135deg, #c4b5fd, #f0abfc, #a78bfa);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+      line-height: 1.3;
+    }
+    header p {
+      color: var(--text2); font-size: 1rem; margin-top: 10px; font-weight: 400;
+    }
+
+    /* ─── Card ─── */
+    .card {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 28px;
+      margin-bottom: 20px;
+    }
+
+    /* ─── Section Label ─── */
+    .section-label {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 0.85rem; font-weight: 700;
+      color: var(--text2); text-transform: uppercase;
+      letter-spacing: 0.05em; margin-bottom: 12px;
+    }
+    .section-label .dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: var(--purple);
+      box-shadow: 0 0 8px var(--purple);
+    }
+
+    /* ─── Topic Input ─── */
+    .topic-wrapper {
+      position: relative;
+    }
+    textarea#topic {
+      width: 100%;
+      background: var(--bg3);
+      border: 1.5px solid var(--border);
+      border-radius: 14px;
+      padding: 16px 18px;
+      color: var(--text);
+      font-family: 'Cairo', sans-serif;
+      font-size: 1rem;
+      font-weight: 500;
+      resize: none;
+      line-height: 1.7;
+      min-height: 110px;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      direction: rtl;
+    }
+    textarea#topic::placeholder { color: var(--text3); }
+    textarea#topic:focus {
+      outline: none;
+      border-color: var(--purple);
+      box-shadow: 0 0 0 3px var(--purple-glow);
+    }
+    .char-count {
+      text-align: left; font-size: 0.75rem; color: var(--text3);
+      margin-top: 6px;
+    }
+
+    /* ─── Category Grid ─── */
+    .categories {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+      gap: 10px;
+    }
+    .cat-btn {
+      display: flex; align-items: center; gap: 8px;
+      padding: 11px 14px; border-radius: 12px;
+      border: 1.5px solid var(--border);
+      background: var(--bg3);
+      color: var(--text2); font-family: 'Cairo', sans-serif;
+      font-size: 0.88rem; font-weight: 600;
+      cursor: pointer; transition: all 0.2s;
+      text-align: right;
+    }
+    .cat-btn:hover { border-color: var(--purple); color: var(--purple); background: var(--purple-glow); }
+    .cat-btn.active {
+      border-color: var(--purple); color: #fff;
+      background: linear-gradient(135deg, rgba(124,58,237,0.4), rgba(167,139,250,0.2));
+      box-shadow: 0 0 12px rgba(124,58,237,0.3);
+    }
+    .cat-btn .icon { font-size: 1.15rem; flex-shrink: 0; }
+
+    /* ─── Tone Row ─── */
+    .tone-row {
+      display: flex; gap: 8px; flex-wrap: wrap;
+    }
+    .tone-btn {
+      padding: 8px 16px; border-radius: 30px;
+      border: 1.5px solid var(--border);
+      background: var(--bg3);
+      color: var(--text2); font-family: 'Cairo', sans-serif;
+      font-size: 0.82rem; font-weight: 600;
+      cursor: pointer; transition: all 0.2s;
+    }
+    .tone-btn:hover { border-color: var(--cyan); color: var(--cyan); }
+    .tone-btn.active {
+      border-color: var(--cyan); color: var(--bg);
+      background: var(--cyan);
+      box-shadow: 0 0 12px rgba(6,182,212,0.4);
+    }
+
+    /* ─── Generate Button ─── */
+    .btn-generate {
+      width: 100%; padding: 17px;
+      border-radius: 14px; border: none;
+      background: linear-gradient(135deg, var(--purple-dark), #6d28d9, var(--pink));
+      background-size: 200% 200%;
+      color: #fff; font-family: 'Cairo', sans-serif;
+      font-size: 1.1rem; font-weight: 700;
+      cursor: pointer; letter-spacing: 0.02em;
+      transition: all 0.3s;
+      position: relative; overflow: hidden;
+      box-shadow: 0 4px 24px rgba(124,58,237,0.4);
+      animation: gradient-shift 4s ease infinite;
+    }
+    @keyframes gradient-shift {
+      0%, 100% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+    }
+    .btn-generate:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 32px rgba(124,58,237,0.6);
+    }
+    .btn-generate:active:not(:disabled) { transform: translateY(0); }
+    .btn-generate:disabled { opacity: 0.6; cursor: not-allowed; }
+    .btn-generate .spinner {
+      display: none; width: 20px; height: 20px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: #fff; border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      margin: 0 auto;
+    }
+    .btn-generate.loading .btn-text { display: none; }
+    .btn-generate.loading .spinner { display: block; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ─── Output Section ─── */
+    .output-section {
+      display: none;
+      animation: slide-up 0.4s ease;
+    }
+    .output-section.visible { display: block; }
+    @keyframes slide-up {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .output-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 14px; flex-wrap: wrap; gap: 10px;
+    }
+    .output-title {
+      display: flex; align-items: center; gap: 10px;
+      font-weight: 700; font-size: 1rem; color: var(--text);
+    }
+    .quality-badge {
+      display: flex; align-items: center; gap: 6px;
+      padding: 5px 12px; border-radius: 20px;
+      font-size: 0.78rem; font-weight: 700;
+    }
+    .quality-badge.excellent { background: rgba(16,185,129,0.15); color: var(--green); border: 1px solid rgba(16,185,129,0.3); }
+    .quality-badge.good { background: rgba(251,191,36,0.15); color: var(--gold); border: 1px solid rgba(251,191,36,0.3); }
+
+    .prompt-box {
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 20px;
+      font-size: 0.95rem;
+      line-height: 1.85;
+      color: var(--text);
+      white-space: pre-wrap;
+      word-break: break-word;
+      direction: ltr;
+      text-align: left;
+      font-family: 'Cairo', 'Segoe UI', sans-serif;
+      min-height: 100px;
+    }
+
+    /* Prompt syntax highlighting */
+    .prompt-box .role { color: #c4b5fd; font-weight: 700; }
+    .prompt-box .context { color: #93c5fd; }
+    .prompt-box .task { color: #6ee7b7; }
+    .prompt-box .format { color: #fde68a; }
+    .prompt-box .constraint { color: #fca5a5; }
+
+    .action-row {
+      display: flex; gap: 10px; margin-top: 14px; flex-wrap: wrap;
+    }
+    .btn-action {
+      display: flex; align-items: center; gap: 7px;
+      padding: 10px 18px; border-radius: 10px;
+      border: 1.5px solid var(--border);
+      background: var(--bg3); color: var(--text2);
+      font-family: 'Cairo', sans-serif; font-size: 0.87rem; font-weight: 600;
+      cursor: pointer; transition: all 0.2s;
+    }
+    .btn-action:hover { border-color: var(--purple); color: var(--purple); background: var(--purple-glow); }
+    .btn-action.copied { border-color: var(--green); color: var(--green); background: rgba(16,185,129,0.1); }
+
+    /* ─── Tips ─── */
+    .tips-grid {
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    @media (max-width: 560px) { .tips-grid { grid-template-columns: 1fr; } }
+    .tip-card {
+      background: var(--bg3); border: 1px solid var(--border);
+      border-radius: 12px; padding: 14px 16px;
+    }
+    .tip-card .tip-icon { font-size: 1.3rem; margin-bottom: 6px; }
+    .tip-card h4 { font-size: 0.88rem; font-weight: 700; color: var(--purple); margin-bottom: 4px; }
+    .tip-card p { font-size: 0.8rem; color: var(--text2); line-height: 1.6; }
+
+    /* ─── Footer ─── */
+    footer {
+      text-align: center; padding: 30px 0;
+      color: var(--text3); font-size: 0.8rem;
+      border-top: 1px solid var(--border);
+      margin-top: 40px;
+    }
+
+    /* ─── Responsive ─── */
+    @media (max-width: 500px) {
+      .card { padding: 18px 14px; }
+      header { padding: 32px 0 24px; }
+      .categories { grid-template-columns: repeat(2, 1fr); }
+    }
+
+    /* ─── Divider ─── */
+    .divider {
+      height: 1px; background: var(--border);
+      margin: 22px 0;
+    }
+
+    /* ─── Prompt Sections highlight ─── */
+    .prompt-section-tag {
+      display: inline-block;
+      padding: 1px 8px; border-radius: 4px;
+      font-size: 0.72rem; font-weight: 700;
+      margin-bottom: 2px;
+      text-transform: uppercase; letter-spacing: 0.05em;
+    }
+  </style>
+</head>
+<body>
+
+<div class="bg-orbs">
+  <div class="orb orb-1"></div>
+  <div class="orb orb-2"></div>
+  <div class="orb orb-3"></div>
+</div>
+
+<div class="container">
+
+  <!-- Header -->
+  <header>
+    <div class="logo-ring">✦</div>
+    <h1>مولّد البرومبت الاحترافي</h1>
+    <p>اكتب موضوعك — نولّد لك أفضل Prompt احترافي لـ Claude</p>
+  </header>
+
+  <!-- Input Card -->
+  <div class="card">
+    <div class="section-label"><span class="dot"></span>موضوعك أو سؤالك</div>
+    <div class="topic-wrapper">
+      <textarea
+        id="topic"
+        placeholder="مثال: كيف أبني تطبيق ويب للتجارة الإلكترونية بـ React و Node.js؟
+أو: أريد أكتب خطة تسويقية لمطعم جديد
+أو: اشرح لي مفهوم الذكاء الاصطناعي بطريقة بسيطة"
+        oninput="updateCharCount(this)"
+        maxlength="600"
+      ></textarea>
+      <div class="char-count"><span id="charCount">0</span> / 600</div>
+    </div>
+  </div>
+
+  <!-- Category Card -->
+  <div class="card">
+    <div class="section-label"><span class="dot"></span>نوع المطلوب</div>
+    <div class="categories" id="catGrid">
+      <button class="cat-btn active" data-cat="auto" onclick="selectCat(this)">
+        <span class="icon">🔮</span> تلقائي
+      </button>
+      <button class="cat-btn" data-cat="code" onclick="selectCat(this)">
+        <span class="icon">💻</span> برمجة
+      </button>
+      <button class="cat-btn" data-cat="write" onclick="selectCat(this)">
+        <span class="icon">✍️</span> كتابة
+      </button>
+      <button class="cat-btn" data-cat="analyze" onclick="selectCat(this)">
+        <span class="icon">🔍</span> تحليل
+      </button>
+      <button class="cat-btn" data-cat="business" onclick="selectCat(this)">
+        <span class="icon">📊</span> أعمال
+      </button>
+      <button class="cat-btn" data-cat="explain" onclick="selectCat(this)">
+        <span class="icon">🎓</span> شرح وتعليم
+      </button>
+      <button class="cat-btn" data-cat="creative" onclick="selectCat(this)">
+        <span class="icon">🎨</span> إبداعي
+      </button>
+      <button class="cat-btn" data-cat="research" onclick="selectCat(this)">
+        <span class="icon">📚</span> بحث
+      </button>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="section-label"><span class="dot"></span>أسلوب الإجابة</div>
+    <div class="tone-row" id="toneRow">
+      <button class="tone-btn active" data-tone="balanced" onclick="selectTone(this)">متوازن</button>
+      <button class="tone-btn" data-tone="detailed" onclick="selectTone(this)">تفصيلي</button>
+      <button class="tone-btn" data-tone="concise" onclick="selectTone(this)">مختصر</button>
+      <button class="tone-btn" data-tone="stepbystep" onclick="selectTone(this)">خطوة بخطوة</button>
+      <button class="tone-btn" data-tone="expert" onclick="selectTone(this)">للمتخصصين</button>
+      <button class="tone-btn" data-tone="simple" onclick="selectTone(this)">للمبتدئين</button>
+    </div>
+  </div>
+
+  <!-- Generate Button -->
+  <button class="btn-generate" id="generateBtn" onclick="generate()">
+    <span class="btn-text">✦ ولّد البرومبت الاحترافي</span>
+    <div class="spinner"></div>
+  </button>
+
+  <!-- Output Section -->
+  <div class="output-section" id="outputSection">
+    <div class="card" style="margin-top: 20px;">
+      <div class="output-header">
+        <div class="output-title">
+          <span>⚡</span>
+          <span>البرومبت الجاهز</span>
+        </div>
+        <div class="quality-badge excellent" id="qualityBadge">
+          <span>★</span>
+          <span id="qualityText">احترافي عالي الجودة</span>
+        </div>
+      </div>
+
+      <div class="prompt-box" id="promptOutput" dir="ltr"></div>
+
+      <div class="action-row">
+        <button class="btn-action" id="copyBtn" onclick="copyPrompt()">
+          <span>📋</span> نسخ البرومبت
+        </button>
+        <button class="btn-action" onclick="regenerate()">
+          <span>🔄</span> نسخة أخرى
+        </button>
+        <button class="btn-action" onclick="clearAll()">
+          <span>✕</span> مسح
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tips -->
+  <div class="card" style="margin-top: 30px;">
+    <div class="section-label" style="margin-bottom: 16px;"><span class="dot"></span>أسرار البرومبت الاحترافي</div>
+    <div class="tips-grid">
+      <div class="tip-card">
+        <div class="tip-icon">🎭</div>
+        <h4>حدّد الدور</h4>
+        <p>أخبر Claude بأنه خبير في مجال معين — يُغيّر هذا جودة الإجابة كلياً.</p>
+      </div>
+      <div class="tip-card">
+        <div class="tip-icon">🎯</div>
+        <h4>كن محدداً</h4>
+        <p>كلما كان السؤال دقيقاً، كانت الإجابة أكثر فائدة وعملية.</p>
+      </div>
+      <div class="tip-card">
+        <div class="tip-icon">📐</div>
+        <h4>حدّد الشكل</h4>
+        <p>اطلب القوائم، أو الجداول، أو الخطوات، أو الأمثلة الكودية.</p>
+      </div>
+      <div class="tip-card">
+        <div class="tip-icon">🔗</div>
+        <h4>أضف السياق</h4>
+        <p>أخبر Claude بمستواك، وما جربته، وما تحتاجه تحديداً.</p>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /container -->
+
+<footer>
+  <p>مولّد البرومبت الاحترافي · مصمم لـ Claude AI</p>
+</footer>
+
+<script>
+// ── State ──────────────────────────────────────────────
+let selectedCat = 'auto';
+let selectedTone = 'balanced';
+let generationVariant = 0;
+
+// ── UI helpers ─────────────────────────────────────────
+function updateCharCount(el) {
+  document.getElementById('charCount').textContent = el.value.length;
+}
+
+function selectCat(btn) {
+  document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  selectedCat = btn.dataset.cat;
+}
+
+function selectTone(btn) {
+  document.querySelectorAll('.tone-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  selectedTone = btn.dataset.tone;
+}
+
+// ── Category Detection ──────────────────────────────────
+function detectCategory(topic) {
+  const t = topic.toLowerCase();
+  const codeKw = ['كود','برمجة','react','python','javascript','node','api','سكريبت','تطبيق','قاعدة بيانات','sql','html','css','framework','component','function','class','bug','خطأ','deploy','git','docker','typescript','php','swift','flutter','كودي','بناء موقع','تطوير'];
+  const writeKw = ['اكتب','كتابة','نص','مقال','قصة','محتوى','وصف','إعلان','caption','بوست','تغريدة','سيناريو','script','عنوان','بريد','رسالة','محتوى','بلوق'];
+  const analyzeKw = ['حلل','تحليل','مقارنة','قارن','نقاط','مميزات','عيوب','pros','cons','swot','بيانات','إحصاء','نتائج','دراسة','احتمالية','خطر'];
+  const businessKw = ['خطة','عمل','مشروع','استراتيجية','تسويق','مبيعات','عملاء','ميزانية','ربح','خسارة','استثمار','شركة','منتج','سوق','منافسين','revenue','مطعم','متجر','خدمة','نمو'];
+  const explainKw = ['اشرح','شرح','فهم','كيف','ما هو','ما هي','لماذا','مفهوم','تعليم','تعلم','مبتدئ','بسيط','سهل','أساسيات','مقدمة','overview'];
+  const creativeKw = ['فكرة','أفكار','إبداع','تصميم','لوجو','براند','اسم','عصف ذهني','ابتكر','حلول','مبدع'];
+  const researchKw = ['بحث','دراسة','مصادر','معلومات','احصاء','تاريخ','حقائق','إحصائيات','ملخص','ورقة بحثية'];
+
+  const score = (kws) => kws.filter(k => t.includes(k)).length;
+  const scores = {
+    code: score(codeKw),
+    write: score(writeKw),
+    analyze: score(analyzeKw),
+    business: score(businessKw),
+    explain: score(explainKw),
+    creative: score(creativeKw),
+    research: score(researchKw),
+  };
+  const best = Object.entries(scores).sort((a,b) => b[1] - a[1])[0];
+  return best[1] > 0 ? best[0] : 'explain';
+}
+
+// ── Tone Instructions ───────────────────────────────────
+function toneInstruction(tone) {
+  return {
+    balanced:    'Present your response in a well-structured, balanced manner with clear explanations and practical examples.',
+    detailed:    'Be thorough and comprehensive. Include detailed explanations, multiple examples, edge cases, and nuanced considerations.',
+    concise:     'Be concise and to the point. Focus only on the most essential information. Avoid unnecessary elaboration.',
+    stepbystep:  'Break down your response into clear, numbered steps. Make each step actionable and easy to follow.',
+    expert:      'Assume expert-level knowledge. Use technical terminology, advanced concepts, and professional-grade depth.',
+    simple:      'Explain everything as if to a complete beginner. Avoid jargon, use simple analogies, and define all technical terms.',
+  }[tone] || '';
+}
+
+// ── Prompt Templates by Category ───────────────────────
+const templates = {
+
+  code: (topic, tone, v) => {
+    const variants = [
+      `You are a senior software engineer with 15+ years of experience in full-stack development, architecture design, and best practices. You excel at writing clean, maintainable, and production-ready code.
+
+**Task:** ${topic}
+
+**Requirements:**
+- Provide a complete, working implementation
+- Follow best practices and design patterns
+- Include error handling and edge cases
+- Add brief inline comments for non-obvious logic
+- Structure the code for scalability
+
+**Output format:**
+1. Brief explanation of the approach chosen
+2. Complete code with proper structure
+3. How to run / integrate it
+4. Potential improvements or alternatives
+
+${toneInstruction(tone)}`,
+
+      `Act as a world-class developer and code architect. Your code is always clean, efficient, and follows modern standards.
+
+I need help with: ${topic}
+
+Please provide:
+- The full implementation (no placeholders or "TODO" comments)
+- A quick breakdown of key decisions made
+- Any dependencies or setup required
+- One alternative approach if applicable
+
+Write production-quality code that a senior engineer would be proud of.
+
+${toneInstruction(tone)}`,
+    ];
+    return variants[v % variants.length];
+  },
+
+  write: (topic, tone, v) => {
+    const variants = [
+      `You are an expert copywriter and content strategist with deep experience in persuasive writing, brand voice, and audience engagement.
+
+**Writing task:** ${topic}
+
+**Deliver:**
+- A polished, ready-to-publish piece
+- Strong opening hook that grabs attention immediately
+- Clear value proposition and logical flow
+- Compelling call to action (if applicable)
+- Appropriate tone for the target audience
+
+**Style guidelines:**
+- Active voice, varied sentence structure
+- Concrete over abstract, specific over generic
+- Every sentence must earn its place
+
+${toneInstruction(tone)}`,
+
+      `As a professional writer and content expert, craft exceptional content for: ${topic}
+
+Focus on:
+1. An irresistible headline/opener
+2. Body that flows naturally and maintains engagement
+3. Strong, memorable closing
+4. Authentic voice that resonates with readers
+
+Make it shareable, memorable, and genuinely useful. No filler, no clichés.
+
+${toneInstruction(tone)}`,
+    ];
+    return variants[v % variants.length];
+  },
+
+  analyze: (topic, tone, v) => {
+    const variants = [
+      `You are a senior analyst with expertise in data interpretation, critical thinking, and strategic assessment.
+
+**Analysis request:** ${topic}
+
+**Framework to apply:**
+1. **Overview** — Set the context and define the scope of analysis
+2. **Key Findings** — Identify the most important insights
+3. **Strengths & Opportunities** — What works well, what can be leveraged
+4. **Weaknesses & Risks** — Honest assessment of challenges
+5. **Actionable Recommendations** — Specific, prioritized next steps
+6. **Conclusion** — Summary of the most critical takeaway
+
+Use data-driven reasoning where possible. Flag assumptions clearly.
+
+${toneInstruction(tone)}`,
+
+      `As a strategic analyst and critical thinker, provide a rigorous analysis of: ${topic}
+
+Structure your response as:
+- Executive Summary (3-4 sentences)
+- Deep-dive analysis with supporting reasoning
+- Comparative perspective (how this compares to alternatives)
+- Clear recommendation with rationale
+- What to watch out for
+
+Be intellectually honest — acknowledge uncertainty and complexity.
+
+${toneInstruction(tone)}`,
+    ];
+    return variants[v % variants.length];
+  },
+
+  business: (topic, tone, v) => {
+    const variants = [
+      `You are an experienced business strategist and entrepreneur who has built and scaled multiple successful ventures. You combine strategic vision with practical execution.
+
+**Business challenge:** ${topic}
+
+**Deliverable:**
+1. **Situation Assessment** — Current landscape and key factors
+2. **Strategic Options** — 2-3 viable approaches with trade-offs
+3. **Recommended Path** — Your top recommendation and rationale
+4. **Action Plan** — Concrete first steps (90-day roadmap)
+5. **Success Metrics** — How to measure progress
+6. **Key Risks & Mitigations** — What could go wrong and how to prepare
+
+Ground your advice in real-world feasibility, not theory.
+
+${toneInstruction(tone)}`,
+
+      `As a seasoned business consultant and growth strategist, help me with: ${topic}
+
+Provide:
+- Market/situation context (be direct, not verbose)
+- Your top 3 strategic recommendations
+- The one thing I should do first and why
+- Common mistakes to avoid
+- Resources or frameworks that apply
+
+Think like an advisor who has skin in the game. Be direct and actionable.
+
+${toneInstruction(tone)}`,
+    ];
+    return variants[v % variants.length];
+  },
+
+  explain: (topic, tone, v) => {
+    const variants = [
+      `You are a master teacher with a gift for making complex ideas crystal clear. You use the Feynman technique: explain anything so a curious 12-year-old can understand it, then build up to full depth.
+
+**Explain:** ${topic}
+
+**Teaching structure:**
+1. **The Core Idea** — One-sentence essence of the concept
+2. **The Simple Analogy** — Relate it to something familiar from everyday life
+3. **How It Actually Works** — Step-by-step breakdown
+4. **Real-World Examples** — 2-3 concrete cases where this matters
+5. **Common Misconceptions** — What people often get wrong
+6. **Why It Matters** — Practical significance and applications
+
+Build understanding progressively. Never use jargon without defining it.
+
+${toneInstruction(tone)}`,
+
+      `As an expert educator who excels at clarity and engagement, explain: ${topic}
+
+Use this approach:
+- Start with the "why this matters" to create context
+- Build from first principles, no assumed knowledge
+- Use vivid analogies and concrete examples
+- Highlight the 3 most important things to understand
+- End with "what to explore next"
+
+The goal: true understanding, not just information transfer.
+
+${toneInstruction(tone)}`,
+    ];
+    return variants[v % variants.length];
+  },
+
+  creative: (topic, tone, v) => {
+    const variants = [
+      `You are a creative director and innovation consultant who combines design thinking, lateral thinking, and market intuition.
+
+**Creative challenge:** ${topic}
+
+**Creative process:**
+1. **Reframe the Problem** — Look at it from 3 different angles
+2. **Wild Ideas** — 5+ bold, unconstrained concepts (quantity first)
+3. **Refined Concepts** — Top 3 ideas developed with detail
+4. **Practical Execution** — How the best idea could actually be implemented
+5. **Unexpected Angle** — One surprising approach others wouldn't think of
+
+Prioritize originality and genuine value over safe, predictable answers.
+
+${toneInstruction(tone)}`,
+
+      `As a visionary creative thinker, generate innovative ideas for: ${topic}
+
+Think in layers:
+- Obvious ideas (acknowledge quickly)
+- Unexpected combinations (mix different domains)
+- Contrarian approaches (what if you did the opposite?)
+- Your single boldest recommendation
+
+For the top idea: name it, describe it vividly, explain why it could work, and outline the first step to make it real.
+
+${toneInstruction(tone)}`,
+    ];
+    return variants[v % variants.length];
+  },
+
+  research: (topic, tone, v) => {
+    const variants = [
+      `You are a research specialist with expertise in synthesizing complex information, evaluating sources critically, and presenting findings clearly.
+
+**Research topic:** ${topic}
+
+**Research brief:**
+1. **Background & Context** — Key historical and current landscape
+2. **Core Findings** — Most important facts, data, and insights
+3. **Multiple Perspectives** — Different viewpoints and schools of thought
+4. **Consensus vs. Debate** — Where experts agree vs. disagree
+5. **Key Sources & References** — Types of sources to explore
+6. **Gaps & Open Questions** — What remains unknown or contested
+7. **Practical Implications** — So what? Why does this matter?
+
+Prioritize accuracy over comprehensiveness. Flag uncertainty explicitly.
+
+${toneInstruction(tone)}`,
+
+      `As an academic researcher and knowledge synthesizer, investigate: ${topic}
+
+Deliver a structured research overview:
+- The current state of knowledge on this topic
+- The most credible evidence and key statistics
+- Contrasting viewpoints with their merit
+- Your assessment of the evidence quality
+- Concrete takeaways and further reading directions
+
+Be intellectually rigorous. Distinguish between facts, interpretations, and speculation.
+
+${toneInstruction(tone)}`,
+    ];
+    return variants[v % variants.length];
+  },
+};
+
+// ── Generate ────────────────────────────────────────────
+function generate() {
+  const topic = document.getElementById('topic').value.trim();
+  if (!topic) {
+    document.getElementById('topic').focus();
+    document.getElementById('topic').style.borderColor = '#f87171';
+    setTimeout(() => {
+      document.getElementById('topic').style.borderColor = '';
+    }, 1500);
+    return;
+  }
+
+  const btn = document.getElementById('generateBtn');
+  btn.classList.add('loading');
+  btn.disabled = true;
+
+  setTimeout(() => {
+    const cat = selectedCat === 'auto' ? detectCategory(topic) : selectedCat;
+    const templateFn = templates[cat] || templates.explain;
+    const prompt = templateFn(topic, selectedTone, generationVariant);
+
+    document.getElementById('promptOutput').textContent = prompt;
+
+    const wordCount = prompt.split(/\s+/).length;
+    const qBadge = document.getElementById('qualityBadge');
+    const qText = document.getElementById('qualityText');
+    if (wordCount > 80) {
+      qBadge.className = 'quality-badge excellent';
+      qText.textContent = 'احترافي عالي الجودة';
+    } else {
+      qBadge.className = 'quality-badge good';
+      qText.textContent = 'جيد ومناسب';
+    }
+
+    document.getElementById('outputSection').classList.add('visible');
+    document.getElementById('outputSection').scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+    btn.classList.remove('loading');
+    btn.disabled = false;
+  }, 900);
+}
+
+function regenerate() {
+  generationVariant++;
+  generate();
+}
+
+function clearAll() {
+  document.getElementById('topic').value = '';
+  document.getElementById('charCount').textContent = '0';
+  document.getElementById('outputSection').classList.remove('visible');
+  generationVariant = 0;
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+async function copyPrompt() {
+  const text = document.getElementById('promptOutput').textContent;
+  if (!text) return;
+  try {
+    await navigator.clipboard.writeText(text);
+    const btn = document.getElementById('copyBtn');
+    btn.classList.add('copied');
+    btn.innerHTML = '<span>✓</span> تم النسخ!';
+    setTimeout(() => {
+      btn.classList.remove('copied');
+      btn.innerHTML = '<span>📋</span> نسخ البرومبت';
+    }, 2200);
+  } catch (e) {
+    const ta = document.createElement('textarea');
+    ta.value = text; document.body.appendChild(ta);
+    ta.select(); document.execCommand('copy');
+    document.body.removeChild(ta);
+  }
+}
+
+// Enter key support
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('topic').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && e.ctrlKey) generate();
+  });
+});
+</script>
+</body>
+</html>
