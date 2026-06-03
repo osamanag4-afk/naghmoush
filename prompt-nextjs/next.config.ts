@@ -1,8 +1,8 @@
 import type { NextConfig } from 'next';
-import path from 'path';
 
 const nextConfig: NextConfig = {
-  outputFileTracingRoot: path.join(__dirname),
+  output: 'export',   // generates fully static HTML — no server needed
+  trailingSlash: true,
 };
 
 export default nextConfig;
