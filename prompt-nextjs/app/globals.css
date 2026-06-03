@@ -1,0 +1,28 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+
+  html {
+    direction: rtl;
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-night-950 text-slate-100 antialiased;
+    font-family: Tahoma, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Arabic placeholder fix: some browsers don't apply placeholder color via Tailwind */
+  textarea::placeholder,
+  input::placeholder {
+    @apply text-slate-600;
+  }
+}
