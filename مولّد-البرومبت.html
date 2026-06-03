@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>مولّد البرومبت لـ Claude</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Segoe UI', Tahoma, Arial, sans-serif;
+  background: #0d0c18;
+  color: #e0ddf5;
+  min-height: 100vh;
+  padding-bottom: 60px;
+}
+
+.wrap {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 0 16px;
+}
+
+/* ── Header ── */
+.header {
+  text-align: center;
+  padding: 44px 0 32px;
+}
+.icon-wrap {
+  width: 68px; height: 68px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #6d28d9, #ec4899);
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 30px;
+  margin-bottom: 18px;
+  box-shadow: 0 0 32px rgba(109,40,217,0.6);
+}
+.header h1 {
+  font-size: 1.9rem;
+  font-weight: 800;
+  background: linear-gradient(to left, #a78bfa, #f9a8d4);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.header p { color: #8b88aa; margin-top: 8px; font-size: 0.97rem; }
+
+/* ── Card ── */
+.card {
+  background: #18162a;
+  border: 1px solid #32305a;
+  border-radius: 18px;
+  padding: 24px;
+  margin-bottom: 16px;
+}
+
+/* ── Label ── */
+.lbl {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #7c79a0;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 12px;
+  display: flex; align-items: center; gap: 7px;
+}
+.lbl::before {
+  content: '';
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: #a78bfa;
+  display: inline-block;
+  box-shadow: 0 0 7px #a78bfa;
+}
+
+/* ── Textarea ── */
+textarea {
+  width: 100%;
+  background: #211e38;
+  border: 1.5px solid #3a3660;
+  border-radius: 12px;
+  padding: 14px 16px;
+  color: #e0ddf5;
+  font-family: inherit;
+  font-size: 1rem;
+  font-weight: 500;
+  resize: none;
+  line-height: 1.7;
+  height: 120px;
+  direction: rtl;
+  transition: border-color 0.2s;
+}
+textarea:focus {
+  outline: none;
+  border-color: #a78bfa;
+  box-shadow: 0 0 0 3px rgba(167,139,250,0.12);
+}
+textarea::placeholder { color: #4e4a6e; }
+
+/* ── Category grid ── */
+.cat-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 9px;
+}
+@media (max-width: 480px) { .cat-grid { grid-template-columns: repeat(2, 1fr); } }
+
+.cat-btn {
+  border: 1.5px solid #3a3660;
+  background: #211e38;
+  color: #8b88aa;
+  border-radius: 11px;
+  padding: 10px 8px;
+  font-family: inherit;
+  font-size: 0.87rem;
+  font-weight: 700;
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.18s;
+  line-height: 1.4;
+}
+.cat-btn:hover { border-color: #a78bfa; color: #a78bfa; }
+.cat-btn.on {
+  border-color: #a78bfa;
+  background: rgba(167,139,250,0.13);
+  color: #fff;
+  box-shadow: 0 0 10px rgba(167,139,250,0.25);
+}
+
+/* ── Tone row ── */
+.tone-row {
+  display: flex; flex-wrap: wrap; gap: 8px;
+}
+.tone-btn {
+  border: 1.5px solid #3a3660;
+  background: #211e38;
+  color: #8b88aa;
+  border-radius: 30px;
+  padding: 7px 16px;
+  font-family: inherit;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.18s;
+}
+.tone-btn:hover { border-color: #22d3ee; color: #22d3ee; }
+.tone-btn.on {
+  border-color: #22d3ee;
+  background: #22d3ee;
+  color: #0d0c18;
+  box-shadow: 0 0 10px rgba(34,211,238,0.35);
+}
+
+/* ── Divider ── */
+.div { height: 1px; background: #2c2a45; margin: 20px 0; }
+
+/* ── Generate button ── */
+.btn-gen {
+  width: 100%;
+  padding: 16px;
+  border: none;
+  border-radius: 13px;
+  background: linear-gradient(135deg, #6d28d9, #7c3aed, #9333ea);
+  color: #fff;
+  font-family: inherit;
+  font-size: 1.07rem;
+  font-weight: 800;
+  cursor: pointer;
+  letter-spacing: 0.02em;
+  box-shadow: 0 4px 22px rgba(109,40,217,0.45);
+  transition: all 0.2s;
+}
+.btn-gen:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 7px 28px rgba(109,40,217,0.65);
+}
+.btn-gen:disabled { opacity: 0.55; cursor: not-allowed; transform: none; }
+
+/* ── Output card ── */
+#result-card {
+  display: none;
+  background: #18162a;
+  border: 1px solid #32305a;
+  border-radius: 18px;
+  padding: 24px;
+  margin-top: 20px;
+}
+.result-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 14px; flex-wrap: wrap; gap: 10px;
+}
+.result-title { font-weight: 800; font-size: 1rem; }
+.badge {
+  background: rgba(16,185,129,0.13);
+  color: #10b981;
+  border: 1px solid rgba(16,185,129,0.3);
+  border-radius: 20px;
+  padding: 4px 12px;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+#out {
+  background: #211e38;
+  border: 1px solid #3a3660;
+  border-radius: 12px;
+  padding: 18px;
+  font-size: 0.93rem;
+  line-height: 1.85;
+  color: #d4d0f0;
+  white-space: pre-wrap;
+  word-break: break-word;
+  direction: ltr;
+  text-align: left;
+  font-family: 'Segoe UI', Tahoma, sans-serif;
+  min-height: 80px;
+}
+
+.actions {
+  display: flex; gap: 10px; margin-top: 14px; flex-wrap: wrap;
+}
+.btn-act {
+  display: flex; align-items: center; gap: 6px;
+  border: 1.5px solid #3a3660;
+  background: #211e38;
+  color: #8b88aa;
+  border-radius: 9px;
+  padding: 9px 16px;
+  font-family: inherit;
+  font-size: 0.87rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.18s;
+}
+.btn-act:hover { border-color: #a78bfa; color: #a78bfa; }
+.btn-act.copied { border-color: #10b981; color: #10b981; background: rgba(16,185,129,0.08); }
+
+/* ── Tips ── */
+.tips {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 11px;
+  margin-top: 8px;
+}
+@media (max-width: 480px) { .tips { grid-template-columns: 1fr; } }
+.tip {
+  background: #211e38;
+  border: 1px solid #2c2a45;
+  border-radius: 11px;
+  padding: 13px 15px;
+}
+.tip .ti { font-size: 1.2rem; margin-bottom: 5px; }
+.tip h4 { font-size: 0.85rem; font-weight: 800; color: #a78bfa; margin-bottom: 3px; }
+.tip p { font-size: 0.79rem; color: #7c79a0; line-height: 1.55; }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+  <!-- Header -->
+  <div class="header">
+    <div class="icon-wrap">✦</div>
+    <h1>مولّد البرومبت الاحترافي</h1>
+    <p>اكتب موضوعك — ونولّد لك أفضل Prompt لـ Claude</p>
+  </div>
+
+  <!-- Topic input -->
+  <div class="card">
+    <div class="lbl">موضوعك أو سؤالك</div>
+    <textarea id="topic" placeholder="مثال: أريد أبني تطبيق مواعيد للأطباء بـ React&#10;أو: اكتب لي خطة تسويقية لمطعم جديد&#10;أو: اشرح لي مفهوم Machine Learning بطريقة بسيطة"></textarea>
+  </div>
+
+  <!-- Category + Tone -->
+  <div class="card">
+    <div class="lbl">نوع المطلوب</div>
+    <div class="cat-grid">
+      <button class="cat-btn on"  onclick="pickCat(this,'auto')">🔮 تلقائي</button>
+      <button class="cat-btn"     onclick="pickCat(this,'code')">💻 برمجة</button>
+      <button class="cat-btn"     onclick="pickCat(this,'write')">✍️ كتابة</button>
+      <button class="cat-btn"     onclick="pickCat(this,'analyze')">🔍 تحليل</button>
+      <button class="cat-btn"     onclick="pickCat(this,'business')">📊 أعمال</button>
+      <button class="cat-btn"     onclick="pickCat(this,'explain')">🎓 شرح</button>
+      <button class="cat-btn"     onclick="pickCat(this,'creative')">🎨 إبداعي</button>
+      <button class="cat-btn"     onclick="pickCat(this,'research')">📚 بحث</button>
+    </div>
+
+    <div class="div"></div>
+
+    <div class="lbl">أسلوب الإجابة</div>
+    <div class="tone-row">
+      <button class="tone-btn on"  onclick="pickTone(this,'balanced')">متوازن</button>
+      <button class="tone-btn"     onclick="pickTone(this,'detailed')">تفصيلي</button>
+      <button class="tone-btn"     onclick="pickTone(this,'concise')">مختصر</button>
+      <button class="tone-btn"     onclick="pickTone(this,'steps')">خطوة بخطوة</button>
+      <button class="tone-btn"     onclick="pickTone(this,'expert')">للمتخصصين</button>
+      <button class="tone-btn"     onclick="pickTone(this,'simple')">للمبتدئين</button>
+    </div>
+  </div>
+
+  <!-- Generate -->
+  <button class="btn-gen" id="btn" onclick="doGenerate()">✦ ولّد البرومبت الاحترافي</button>
+
+  <!-- Output -->
+  <div id="result-card">
+    <div class="result-header">
+      <div class="result-title">⚡ البرومبت الجاهز</div>
+      <div class="badge">★ احترافي عالي الجودة</div>
+    </div>
+    <pre id="out"></pre>
+    <div class="actions">
+      <button class="btn-act" id="copyBtn" onclick="doCopy()">📋 نسخ البرومبت</button>
+      <button class="btn-act" onclick="doClear()">✕ مسح</button>
+    </div>
+  </div>
+
+  <!-- Tips -->
+  <div class="card" style="margin-top:24px">
+    <div class="lbl" style="margin-bottom:14px">أسرار البرومبت الاحترافي</div>
+    <div class="tips">
+      <div class="tip"><div class="ti">🎭</div><h4>حدّد الدور</h4><p>أخبر Claude بأنه خبير في مجال معين لتحسين جودة الإجابة.</p></div>
+      <div class="tip"><div class="ti">🎯</div><h4>كن محدداً</h4><p>كلما كان السؤال دقيقاً كانت الإجابة أكثر فائدة.</p></div>
+      <div class="tip"><div class="ti">📐</div><h4>حدّد الشكل</h4><p>اطلب قوائم أو جداول أو خطوات أو كود حسب احتياجك.</p></div>
+      <div class="tip"><div class="ti">🔗</div><h4>أضف السياق</h4><p>أخبر Claude بمستواك وما جربته وما تحتاجه تحديداً.</p></div>
+    </div>
+  </div>
+
+</div><!-- /wrap -->
+
+<script>
+var CAT  = 'auto';
+var TONE = 'balanced';
+
+function pickCat(el, val) {
+  var all = document.querySelectorAll('.cat-btn');
+  for (var i = 0; i < all.length; i++) all[i].classList.remove('on');
+  el.classList.add('on');
+  CAT = val;
+}
+
+function pickTone(el, val) {
+  var all = document.querySelectorAll('.tone-btn');
+  for (var i = 0; i < all.length; i++) all[i].classList.remove('on');
+  el.classList.add('on');
+  TONE = val;
+}
+
+function detectCat(t) {
+  t = t.toLowerCase();
+  if (/كود|برمجة|react|vue|python|javascript|node|html|css|api|باغ|bug|موقع|تطبيق|app|swift|flutter/.test(t)) return 'code';
+  if (/اكتب|كتابة|مقال|نص|محتوى|إعلان|caption|بوست|قصيدة|رسالة/.test(t)) return 'write';
+  if (/حلل|تحليل|مقارنة|قارن|مميزات|عيوب|ايجابيات|سلبيات/.test(t)) return 'analyze';
+  if (/خطة|عمل|مشروع|استراتيجية|تسويق|مبيعات|ربح|شركة|منتج|سوق/.test(t)) return 'business';
+  if (/اشرح|شرح|كيف|ما هو|ما هي|لماذا|مفهوم|تعلم|أساسيات/.test(t)) return 'explain';
+  if (/فكرة|أفكار|إبداع|ابتكر|تصميم/.test(t)) return 'creative';
+  if (/بحث|دراسة|معلومات|احصاء|تاريخ/.test(t)) return 'research';
+  return 'explain';
+}
+
+function buildPrompt(topic, cat, tone) {
+  var R = {
+    code:     'You are a senior software engineer with 15+ years of experience. You write clean, production-ready, well-structured code.',
+    write:    'You are an expert copywriter and content strategist with deep experience in engaging, high-converting writing.',
+    analyze:  'You are a senior analyst with expertise in critical thinking, data interpretation, and strategic assessment.',
+    business: 'You are an experienced business strategist and entrepreneur who combines strategic vision with practical execution.',
+    explain:  'You are a master teacher with a gift for making complex ideas crystal clear — you use the Feynman technique and vivid analogies.',
+    creative: 'You are a creative director and innovation consultant who combines design thinking with lateral thinking.',
+    research: 'You are a research specialist with expertise in synthesizing complex information and presenting findings clearly.'
+  };
+
+  var F = {
+    balanced: 'Present your response in a clear, balanced manner with explanations and practical examples.',
+    detailed: 'Be thorough and comprehensive. Include detailed explanations, multiple examples, and edge cases.',
+    concise:  'Be concise and focused. Provide only the most essential information without unnecessary elaboration.',
+    steps:    'Break your entire response into clear, numbered steps. Each step must be actionable and self-contained.',
+    expert:   'Assume expert-level knowledge. Use technical depth, precise terminology, and professional-grade insight.',
+    simple:   'Explain everything as if to a complete beginner. Use simple language, everyday analogies, and define all technical terms.'
+  };
+
+  var TL = {
+    code:     'Coding task',
+    write:    'Writing task',
+    analyze:  'Analysis request',
+    business: 'Business challenge',
+    explain:  'Topic to explain',
+    creative: 'Creative challenge',
+    research: 'Research topic'
+  };
+
+  var role   = R[cat]  || R.explain;
+  var fmt    = F[tone] || F.balanced;
+  var tlabel = TL[cat] || 'Task';
+
+  var lines = [];
+  lines.push(role);
+  lines.push('');
+  lines.push('**' + tlabel + ':** ' + topic);
+  lines.push('');
+
+  if (cat === 'code') {
+    lines.push('**Requirements:**');
+    lines.push('- Provide a complete, working implementation (no placeholders or TODOs)');
+    lines.push('- Follow modern best practices and design patterns');
+    lines.push('- Include error handling and cover edge cases');
+    lines.push('- Add brief comments only for non-obvious logic');
+    lines.push('');
+    lines.push('**Output format:**');
+    lines.push('1. Brief explanation of the chosen approach');
+    lines.push('2. Full, runnable code');
+    lines.push('3. Instructions to run or integrate it');
+    lines.push('4. One alternative approach (if applicable)');
+
+  } else if (cat === 'write') {
+    lines.push('**Deliver:**');
+    lines.push('- A polished, ready-to-publish piece');
+    lines.push('- A strong opening hook that immediately grabs attention');
+    lines.push('- Clear value proposition and natural flow');
+    lines.push('- A compelling call to action (if applicable)');
+    lines.push('');
+    lines.push('**Style:** Active voice, varied sentence structure, specific over generic, no filler.');
+
+  } else if (cat === 'analyze') {
+    lines.push('**Analysis framework:**');
+    lines.push('1. **Overview** — Context and scope of the analysis');
+    lines.push('2. **Key Findings** — Most important insights');
+    lines.push('3. **Strengths & Opportunities** — What works and what can be leveraged');
+    lines.push('4. **Weaknesses & Risks** — Honest assessment of challenges');
+    lines.push('5. **Recommendations** — Specific, prioritized next steps');
+    lines.push('');
+    lines.push('Use data-driven reasoning. Flag assumptions and uncertainties explicitly.');
+
+  } else if (cat === 'business') {
+    lines.push('**Deliverables:**');
+    lines.push('1. **Situation Assessment** — Current landscape and key factors');
+    lines.push('2. **Strategic Options** — 2-3 viable paths with trade-offs');
+    lines.push('3. **Recommended Path** — Your top recommendation with rationale');
+    lines.push('4. **Action Plan** — Concrete first steps for the next 90 days');
+    lines.push('5. **Key Risks & Mitigations** — What could go wrong and how to prepare');
+    lines.push('');
+    lines.push('Ground advice in real-world feasibility, not theory. Be direct and actionable.');
+
+  } else if (cat === 'explain') {
+    lines.push('**Teaching structure:**');
+    lines.push('1. **Core Idea** — The essence of the concept in one clear sentence');
+    lines.push('2. **Simple Analogy** — Relate it to something familiar from everyday life');
+    lines.push('3. **How It Works** — Step-by-step breakdown');
+    lines.push('4. **Real Examples** — 2-3 concrete, relatable cases');
+    lines.push('5. **Common Mistakes** — What people often misunderstand');
+    lines.push('6. **Why It Matters** — Practical significance and applications');
+    lines.push('');
+    lines.push('Build understanding progressively. Never use jargon without defining it first.');
+
+  } else if (cat === 'creative') {
+    lines.push('**Creative process:**');
+    lines.push('1. **Reframe** — Look at the challenge from 3 different angles');
+    lines.push('2. **Diverge** — Generate 5+ bold, unconstrained ideas (quantity over quality first)');
+    lines.push('3. **Converge** — Develop the top 3 concepts with detail');
+    lines.push('4. **Champion Idea** — Your single best recommendation with a clear execution plan');
+    lines.push('5. **Wild Card** — One surprising approach others would not think of');
+    lines.push('');
+    lines.push('Prioritize originality and genuine value. Avoid safe, predictable answers.');
+
+  } else if (cat === 'research') {
+    lines.push('**Research brief:**');
+    lines.push('1. **Background** — Key historical context and current landscape');
+    lines.push('2. **Core Findings** — Most important facts, data, and insights');
+    lines.push('3. **Multiple Perspectives** — Different viewpoints and schools of thought');
+    lines.push('4. **Consensus vs. Debate** — Where experts agree vs. where they disagree');
+    lines.push('5. **Practical Implications** — What this means in practice and why it matters');
+    lines.push('');
+    lines.push('Distinguish clearly between facts, interpretations, and speculation. Flag uncertainty.');
+  }
+
+  lines.push('');
+  lines.push(fmt);
+
+  return lines.join('\n');
+}
+
+function doGenerate() {
+  var topic = document.getElementById('topic').value;
+  if (topic) topic = topic.trim();
+  if (!topic) {
+    document.getElementById('topic').style.borderColor = '#f87171';
+    document.getElementById('topic').focus();
+    setTimeout(function() {
+      document.getElementById('topic').style.borderColor = '';
+    }, 1500);
+    return;
+  }
+
+  var btn = document.getElementById('btn');
+  btn.disabled = true;
+  btn.textContent = '... جاري التوليد';
+
+  setTimeout(function() {
+    var cat    = (CAT === 'auto') ? detectCat(topic) : CAT;
+    var prompt = buildPrompt(topic, cat, TONE);
+
+    document.getElementById('out').textContent = prompt;
+    document.getElementById('copyBtn').textContent = '📋 نسخ البرومبت';
+    document.getElementById('copyBtn').classList.remove('copied');
+
+    var card = document.getElementById('result-card');
+    card.style.display = 'block';
+
+    setTimeout(function() {
+      card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 50);
+
+    btn.disabled = false;
+    btn.textContent = '✦ ولّد البرومبت الاحترافي';
+  }, 700);
+}
+
+function doCopy() {
+  var text = document.getElementById('out').textContent;
+  if (!text) return;
+  var btn = document.getElementById('copyBtn');
+
+  if (navigator.clipboard && window.isSecureContext) {
+    navigator.clipboard.writeText(text).then(function() {
+      btn.textContent = '✓ تم النسخ!';
+      btn.classList.add('copied');
+      setTimeout(function() {
+        btn.textContent = '📋 نسخ البرومبت';
+        btn.classList.remove('copied');
+      }, 2200);
+    });
+  } else {
+    var ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.focus();
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    btn.textContent = '✓ تم النسخ!';
+    btn.classList.add('copied');
+    setTimeout(function() {
+      btn.textContent = '📋 نسخ البرومبت';
+      btn.classList.remove('copied');
+    }, 2200);
+  }
+}
+
+function doClear() {
+  document.getElementById('topic').value = '';
+  document.getElementById('result-card').style.display = 'none';
+  document.getElementById('out').textContent = '';
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+</script>
+</body>
+</html>
