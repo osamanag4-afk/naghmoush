@@ -225,12 +225,16 @@
     /* ─── Output Section ─── */
     .output-section {
       display: none;
-      animation: slide-up 0.4s ease;
+      opacity: 0;
+      transform: translateY(20px);
+      transition: opacity 0.4s ease, transform 0.4s ease;
     }
-    .output-section.visible { display: block; }
-    @keyframes slide-up {
-      from { opacity: 0; transform: translateY(20px); }
-      to { opacity: 1; transform: translateY(0); }
+    .output-section.visible {
+      display: block;
+    }
+    .output-section.animated {
+      opacity: 1;
+      transform: translateY(0);
     }
 
     .output-header {
@@ -799,28 +803,39 @@ function generate() {
   btn.disabled = true;
 
   setTimeout(() => {
-    const cat = selectedCat === 'auto' ? detectCategory(topic) : selectedCat;
-    const templateFn = templates[cat] || templates.explain;
-    const prompt = templateFn(topic, selectedTone, generationVariant);
+    try {
+      const cat = selectedCat === 'auto' ? detectCategory(topic) : selectedCat;
+      const templateFn = templates[cat] || templates.explain;
+      const prompt = templateFn(topic, selectedTone, generationVariant);
 
-    document.getElementById('promptOutput').textContent = prompt;
+      document.getElementById('promptOutput').textContent = prompt;
 
-    const wordCount = prompt.split(/\s+/).length;
-    const qBadge = document.getElementById('qualityBadge');
-    const qText = document.getElementById('qualityText');
-    if (wordCount > 80) {
-      qBadge.className = 'quality-badge excellent';
-      qText.textContent = 'احترافي عالي الجودة';
-    } else {
-      qBadge.className = 'quality-badge good';
-      qText.textContent = 'جيد ومناسب';
+      const wordCount = prompt.split(/\s+/).length;
+      const qBadge = document.getElementById('qualityBadge');
+      const qText  = document.getElementById('qualityText');
+      if (wordCount > 80) {
+        qBadge.className = 'quality-badge excellent';
+        qText.textContent = 'احترافي عالي الجودة';
+      } else {
+        qBadge.className = 'quality-badge good';
+        qText.textContent = 'جيد ومناسب';
+      }
+
+      const outEl = document.getElementById('outputSection');
+      outEl.style.display = 'block';
+      outEl.classList.add('visible');
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          outEl.classList.add('animated');
+          outEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
+      });
+    } catch (err) {
+      alert('حدث خطأ: ' + err.message);
+    } finally {
+      btn.classList.remove('loading');
+      btn.disabled = false;
     }
-
-    document.getElementById('outputSection').classList.add('visible');
-    document.getElementById('outputSection').scrollIntoView({ behavior: 'smooth', block: 'start' });
-
-    btn.classList.remove('loading');
-    btn.disabled = false;
   }, 900);
 }
 
@@ -832,7 +847,9 @@ function regenerate() {
 function clearAll() {
   document.getElementById('topic').value = '';
   document.getElementById('charCount').textContent = '0';
-  document.getElementById('outputSection').classList.remove('visible');
+  const outEl = document.getElementById('outputSection');
+  outEl.classList.remove('visible', 'animated');
+  outEl.style.display = 'none';
   generationVariant = 0;
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
