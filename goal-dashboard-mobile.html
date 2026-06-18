@@ -1,0 +1,832 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <!--
+    iPhone 13 Pro Max
+    ─────────────────────────────────────────
+    Logical resolution : 428 × 926 pt
+    Physical           : 1284 × 2778 px  (3×)
+    Status bar         : ~47 pt
+    Home indicator     : ~34 pt
+    Safe-area top      : env(safe-area-inset-top)   ≈ 47 pt
+    Safe-area bottom   : env(safe-area-inset-bottom) ≈ 34 pt
+  -->
+  <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable"            content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style"   content="black-translucent">
+  <meta name="apple-mobile-web-app-title"              content="أهدافي">
+  <title>أهدافي</title>
+
+  <!-- Tailwind CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      safelist: [
+        'from-violet-500','to-purple-600',
+        'from-blue-500','to-cyan-600',
+        'from-emerald-500','to-teal-600',
+        'from-rose-500','to-pink-600',
+        'from-amber-500','to-orange-600',
+      ]
+    }
+  </script>
+
+  <!-- Cairo Arabic Font -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;900&display=swap" rel="stylesheet">
+
+  <!-- React 18 -->
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <!-- Recharts 2 -->
+  <script src="https://unpkg.com/recharts@2.8.0/umd/Recharts.js"></script>
+  <!-- Framer Motion 6 (UMD global: window.Motion) -->
+  <script src="https://unpkg.com/framer-motion@6.5.1/dist/framer-motion.js"></script>
+  <!-- Lucide React (UMD global: lucideReact) -->
+  <script src="https://unpkg.com/lucide-react@0.263.1/dist/umd/lucide-react.js"></script>
+  <!-- Babel JSX compiler -->
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <style>
+    /* ── Base ──────────────────────────────────────────────────────── */
+    *, *::before, *::after {
+      font-family: 'Cairo', sans-serif;
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+    html, body, #root {
+      margin: 0; padding: 0;
+      width: 100%; height: 100%;
+      overflow: hidden;
+      direction: rtl;
+      background: #080514;
+    }
+
+    /* ── Safe-area CSS vars ────────────────────────────────────────── */
+    :root {
+      /* Fallback values match iPhone 13 Pro Max portrait */
+      --sat: env(safe-area-inset-top,    47px);
+      --sab: env(safe-area-inset-bottom, 34px);
+      --sal: env(safe-area-inset-left,   0px);
+      --sar: env(safe-area-inset-right,  0px);
+
+      /* Layout chrome heights */
+      --bar-h:  64px;  /* app bar inner height  */
+      --tab-h:  56px;  /* tab bar inner height  */
+    }
+
+    /* ── Scrollable content ────────────────────────────────────────── */
+    .scroll-area {
+      overflow-y: scroll;
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior-y: contain;
+      scroll-behavior: smooth;
+    }
+    ::-webkit-scrollbar { display: none; }
+
+    /* ── No zoom on iOS keyboard ───────────────────────────────────── */
+    input, textarea { font-size: 16px !important; -webkit-appearance: none; }
+
+    /* ── Glass helpers ─────────────────────────────────────────────── */
+    .glass {
+      background: rgba(255,255,255,0.07);
+      border: 1px solid rgba(255,255,255,0.10);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+    }
+    .glass-dark {
+      background: rgba(8,5,20,0.78);
+      border-bottom: 1px solid rgba(255,255,255,0.07);
+      backdrop-filter: blur(28px);
+      -webkit-backdrop-filter: blur(28px);
+    }
+    .glass-dark-top {
+      background: rgba(8,5,20,0.78);
+      border-top: 1px solid rgba(255,255,255,0.07);
+      backdrop-filter: blur(28px);
+      -webkit-backdrop-filter: blur(28px);
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+  /* ═══════════════════════════════════════════════════════════════════
+     CDN GLOBALS
+  ═══════════════════════════════════════════════════════════════════ */
+  const { useState, useEffect, useCallback, useRef } = React;
+  const { motion, AnimatePresence } = window.Motion;
+  const {
+    ResponsiveContainer, BarChart, Bar,
+    XAxis, YAxis, CartesianGrid, Cell
+  } = Recharts;
+  const {
+    Plus, Trash2, CheckCircle2, Circle, Target, TrendingUp,
+    ChevronDown, ChevronUp, Sparkles, Award, BarChart2, X,
+    List, CheckCheck
+  } = lucideReact;
+
+  /* ═══════════════════════════════════════════════════════════════════
+     CONSTANTS
+  ═══════════════════════════════════════════════════════════════════ */
+  const STORAGE_KEY = 'goal_impact_mobile_v2';
+
+  /* Each colour theme carries gradient stops, glow, and accent */
+  const PALETTE = [
+    { a: '#7c3aed', b: '#a855f7', glow: 'rgba(139,92,246,0.45)' },
+    { a: '#1d4ed8', b: '#06b6d4', glow: 'rgba(59,130,246,0.45)' },
+    { a: '#047857', b: '#14b8a6', glow: 'rgba(16,185,129,0.45)' },
+    { a: '#be123c', b: '#ec4899', glow: 'rgba(244,63,94,0.45)'  },
+    { a: '#b45309', b: '#f97316', glow: 'rgba(245,158,11,0.45)' },
+  ];
+
+  const DAYS_SHORT = ['أحد','إثن','ثلا','أرب','خمس','جمع','سبت'];
+
+  /* ═══════════════════════════════════════════════════════════════════
+     HELPERS
+  ═══════════════════════════════════════════════════════════════════ */
+  const uid = () => `${Date.now()}-${Math.random().toString(36).slice(2,7)}`;
+
+  const goalPct = g => {
+    if (!g.subtasks.length) return 0;
+    return Math.round(g.subtasks.filter(s => s.done).length / g.subtasks.length * 100);
+  };
+
+  const globalPct = goals => {
+    const t = goals.reduce((a,g) => a + g.subtasks.length, 0);
+    const d = goals.reduce((a,g) => a + g.subtasks.filter(s=>s.done).length, 0);
+    return t === 0 ? 0 : Math.round(d/t*100);
+  };
+
+  const weekData = goals =>
+    DAYS_SHORT.map((day,i) => ({
+      day,
+      v: goals.reduce((acc,g) =>
+        acc + g.subtasks.filter(s => s.done && s.completedDay===i).length, 0),
+    }));
+
+  /* ═══════════════════════════════════════════════════════════════════
+     PRIMITIVES
+  ═══════════════════════════════════════════════════════════════════ */
+
+  /* Animated SVG Radial Ring */
+  function Ring({ pct, size=120, stroke=10, color='#8b5cf6' }) {
+    const r    = (size - stroke) / 2;
+    const circ = 2 * Math.PI * r;
+    const cx   = size / 2, cy = size / 2;
+    return (
+      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}
+           style={{ transform:'rotate(-90deg)', display:'block' }}>
+        <circle cx={cx} cy={cy} r={r} fill="none"
+          stroke="rgba(255,255,255,0.07)" strokeWidth={stroke} />
+        <motion.circle cx={cx} cy={cy} r={r} fill="none"
+          stroke={color} strokeWidth={stroke} strokeLinecap="round"
+          strokeDasharray={circ}
+          initial={{ strokeDashoffset: circ }}
+          animate={{ strokeDashoffset: circ - circ*(pct/100) }}
+          transition={{ duration: 1.3, ease: 'easeOut' }}
+        />
+      </svg>
+    );
+  }
+
+  /* Glass Card */
+  const GCard = ({ children, style, className='' }) => (
+    <div className={`glass rounded-3xl ${className}`} style={style}>
+      {children}
+    </div>
+  );
+
+  /* Gradient button */
+  const GBtn = ({ children, onClick, palette, className='', style={} }) => (
+    <motion.button whileTap={{ scale:.93 }} onClick={onClick}
+      className={`flex items-center justify-center gap-1.5 font-bold text-white ${className}`}
+      style={{
+        background: `linear-gradient(135deg,${palette.a},${palette.b})`,
+        boxShadow: `0 6px 20px ${palette.glow}`,
+        ...style
+      }}
+    >{children}</motion.button>
+  );
+
+  /* ═══════════════════════════════════════════════════════════════════
+     DASHBOARD TAB
+  ═══════════════════════════════════════════════════════════════════ */
+  function DashboardTab({ goals }) {
+    const pct    = globalPct(goals);
+    const total  = goals.reduce((a,g) => a + g.subtasks.length, 0);
+    const done   = goals.reduce((a,g) => a + g.subtasks.filter(s=>s.done).length, 0);
+    const doneG  = goals.filter(g => goalPct(g) === 100).length;
+    const today  = new Date().getDay();
+    const data   = weekData(goals);
+    const hero   = PALETTE[0];
+
+    const stats = [
+      { label:'الأهداف', value: goals.length, Icon: Target,     pal: PALETTE[0] },
+      { label:'مكتملة',  value: doneG,        Icon: Award,      pal: PALETTE[2] },
+      { label:'المهام',  value: total,        Icon: List,       pal: PALETTE[1] },
+      { label:'منجز',    value: done,         Icon: CheckCheck, pal: PALETTE[2] },
+    ];
+
+    return (
+      <div className="flex flex-col gap-4 pb-4">
+
+        {/* ── Hero card: Global progress ── */}
+        <motion.div initial={{opacity:0,y:18}} animate={{opacity:1,y:0}} transition={{delay:.04}}>
+          <GCard style={{ background:`linear-gradient(140deg,rgba(124,58,237,.25),rgba(168,85,247,.1))` }}
+                 className="p-5">
+            <div className="flex items-center gap-4">
+
+              {/* Radial ring */}
+              <div className="relative flex-shrink-0" style={{width:110,height:110}}>
+                <Ring pct={pct} size={110} stroke={9} color={hero.a} />
+                <div className="absolute inset-0 flex flex-col items-center justify-center">
+                  <motion.span key={pct}
+                    initial={{scale:.7,opacity:0}} animate={{scale:1,opacity:1}}
+                    className="text-[28px] font-black text-white leading-none"
+                  >{pct}%</motion.span>
+                  <span className="text-white/40 text-[11px] mt-0.5">مكتمل</span>
+                </div>
+              </div>
+
+              {/* Text + mini bar */}
+              <div className="flex-1 min-w-0">
+                <p className="text-white/50 text-xs font-semibold mb-0.5">التقدم العالمي</p>
+                <p className="text-white text-[22px] font-black leading-tight">
+                  {done}
+                  <span className="text-white/40 text-base font-semibold"> / {total}</span>
+                </p>
+                <p className="text-white/40 text-xs mb-2.5">مهمة منجزة</p>
+                <div className="h-2 rounded-full overflow-hidden"
+                     style={{background:'rgba(255,255,255,0.08)'}}>
+                  <motion.div className="h-full rounded-full"
+                    style={{background:`linear-gradient(to right,${hero.a},${hero.b})`}}
+                    initial={{width:0}}
+                    animate={{width:`${pct}%`}}
+                    transition={{duration:1.2,ease:'easeOut'}}
+                  />
+                </div>
+              </div>
+            </div>
+          </GCard>
+        </motion.div>
+
+        {/* ── 2×2 Stat grid ── */}
+        <div className="grid grid-cols-2 gap-3">
+          {stats.map((s,i) => (
+            <motion.div key={s.label}
+              initial={{opacity:0,scale:.88}} animate={{opacity:1,scale:1}}
+              transition={{delay:.1+i*.07}}
+            >
+              <GCard className="p-4">
+                <div className="flex items-center gap-2 mb-2.5">
+                  <div className="w-8 h-8 rounded-2xl flex items-center justify-center flex-shrink-0"
+                    style={{background:`linear-gradient(135deg,${s.pal.a},${s.pal.b})`}}>
+                    <s.Icon size={15} className="text-white" />
+                  </div>
+                  <span className="text-white/45 text-xs font-semibold">{s.label}</span>
+                </div>
+                <p className="text-white text-[32px] font-black leading-none">{s.value}</p>
+              </GCard>
+            </motion.div>
+          ))}
+        </div>
+
+        {/* ── Weekly bar chart ── */}
+        <motion.div initial={{opacity:0,y:18}} animate={{opacity:1,y:0}} transition={{delay:.36}}>
+          <GCard className="p-5">
+            <div className="flex items-center gap-2 mb-4">
+              <BarChart2 size={16} color="#3b82f6" />
+              <p className="text-white/65 text-sm font-bold">إنجاز هذا الأسبوع</p>
+              <div className="flex-1" />
+              <div className="flex items-center gap-1.5">
+                <div className="w-2 h-2 rounded-full" style={{background:'#8b5cf6'}} />
+                <span className="text-white/30 text-[10px]">اليوم</span>
+              </div>
+            </div>
+            <ResponsiveContainer width="100%" height={130}>
+              <BarChart data={data} margin={{top:0,right:0,bottom:0,left:-30}}>
+                <CartesianGrid strokeDasharray="2 4"
+                  stroke="rgba(255,255,255,0.04)" vertical={false} />
+                <XAxis dataKey="day"
+                  tick={{fontSize:10,fill:'rgba(255,255,255,0.35)',fontFamily:'Cairo'}}
+                  axisLine={false} tickLine={false} />
+                <YAxis
+                  tick={{fontSize:10,fill:'rgba(255,255,255,0.35)'}}
+                  axisLine={false} tickLine={false} allowDecimals={false} />
+                <Bar dataKey="v" radius={[5,5,0,0]} maxBarSize={26}>
+                  {data.map((_,i) => (
+                    <Cell key={i}
+                      fill={i===today ? '#8b5cf6' : 'rgba(139,92,246,0.22)'} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </GCard>
+        </motion.div>
+      </div>
+    );
+  }
+
+  /* ═══════════════════════════════════════════════════════════════════
+     SUBTASK ROW
+  ═══════════════════════════════════════════════════════════════════ */
+  function SubRow({ sub, accent, onToggle, onDelete }) {
+    return (
+      <motion.div layout
+        initial={{opacity:0,x:16}} animate={{opacity:1,x:0}}
+        exit={{opacity:0,height:0,marginTop:0,paddingTop:0,paddingBottom:0}}
+        className="flex items-center gap-3 py-2 group"
+      >
+        <motion.button whileTap={{scale:.8}} onClick={onToggle}
+          className="flex-shrink-0">
+          {sub.done
+            ? <CheckCircle2 size={20} color={accent} />
+            : <Circle size={20} color="rgba(255,255,255,0.25)" />}
+        </motion.button>
+        <span className={`flex-1 text-sm leading-snug ${
+          sub.done ? 'line-through text-white/25' : 'text-white/75'}`}>
+          {sub.text}
+        </span>
+        <motion.button whileTap={{scale:.8}} onClick={onDelete}
+          className="opacity-0 group-hover:opacity-100 transition-opacity p-1 -m-1">
+          <X size={13} color="rgba(255,255,255,0.25)" />
+        </motion.button>
+      </motion.div>
+    );
+  }
+
+  /* ═══════════════════════════════════════════════════════════════════
+     GOAL CARD
+  ═══════════════════════════════════════════════════════════════════ */
+  function GoalCard({ goal, pal, onDelete, onToggleSub, onDeleteSub, onAddSub }) {
+    const [open,   setOpen]   = useState(true);
+    const [newSub, setNewSub] = useState('');
+    const pct = goalPct(goal);
+
+    const addSub = () => {
+      if (!newSub.trim()) return;
+      onAddSub(newSub.trim());
+      setNewSub('');
+    };
+
+    return (
+      <motion.div layout
+        initial={{opacity:0,y:20}}
+        animate={{opacity:1,y:0}}
+        exit={{opacity:0,scale:.92,transition:{duration:.18}}}
+      >
+        <GCard className="overflow-hidden">
+          {/* Colour strip */}
+          <div style={{
+            height: 3,
+            background: `linear-gradient(to right,${pal.a},${pal.b})`,
+          }} />
+
+          <div className="p-4">
+            {/* Title + controls */}
+            <div className="flex items-start justify-between gap-2 mb-3">
+              <div className="flex-1 min-w-0">
+                <p className="text-white font-bold text-[16px] leading-snug">{goal.title}</p>
+                {goal.description && (
+                  <p className="text-white/35 text-xs mt-0.5 line-clamp-1">{goal.description}</p>
+                )}
+              </div>
+              <div className="flex gap-1.5 flex-shrink-0 mt-0.5">
+                {/* Collapse toggle */}
+                <motion.button whileTap={{scale:.82}}
+                  onClick={() => setOpen(v=>!v)}
+                  className="w-8 h-8 rounded-xl flex items-center justify-center"
+                  style={{background:'rgba(255,255,255,0.07)'}}>
+                  {open
+                    ? <ChevronUp   size={14} color="rgba(255,255,255,0.55)" />
+                    : <ChevronDown size={14} color="rgba(255,255,255,0.55)" />}
+                </motion.button>
+                {/* Delete */}
+                <motion.button whileTap={{scale:.82}}
+                  onClick={onDelete}
+                  className="w-8 h-8 rounded-xl flex items-center justify-center"
+                  style={{background:'rgba(244,63,94,0.1)'}}>
+                  <Trash2 size={14} color="rgba(244,63,94,0.75)" />
+                </motion.button>
+              </div>
+            </div>
+
+            {/* Progress bar */}
+            <div className="mb-1">
+              <div className="flex justify-between items-center mb-1.5">
+                <span className="text-white/35 text-xs">
+                  {goal.subtasks.filter(s=>s.done).length}/{goal.subtasks.length} مهمة
+                </span>
+                <motion.span key={pct}
+                  initial={{scale:.8}} animate={{scale:1}}
+                  className="text-xs font-bold"
+                  style={{color: pal.b}}
+                >{pct}%</motion.span>
+              </div>
+              <div className="h-1.5 rounded-full overflow-hidden"
+                   style={{background:'rgba(255,255,255,0.07)'}}>
+                <motion.div className="h-full rounded-full"
+                  style={{background:`linear-gradient(to right,${pal.a},${pal.b})`}}
+                  initial={{width:0}}
+                  animate={{width:`${pct}%`}}
+                  transition={{duration:.8,ease:'easeOut'}}
+                />
+              </div>
+            </div>
+
+            {/* Subtasks (collapsible) */}
+            <AnimatePresence>
+              {open && (
+                <motion.div
+                  initial={{height:0,opacity:0}}
+                  animate={{height:'auto',opacity:1}}
+                  exit={{height:0,opacity:0}}
+                  transition={{duration:.24}}
+                  style={{overflow:'hidden'}}
+                >
+                  <div className="mt-2">
+                    <AnimatePresence>
+                      {goal.subtasks.length === 0 && (
+                        <motion.p key="empty"
+                          initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}}
+                          className="text-white/20 text-xs text-center py-3"
+                        >لا توجد مهام بعد</motion.p>
+                      )}
+                      {goal.subtasks.map(s => (
+                        <SubRow key={s.id} sub={s} accent={pal.b}
+                          onToggle={() => onToggleSub(s.id)}
+                          onDelete={() => onDeleteSub(s.id)} />
+                      ))}
+                    </AnimatePresence>
+
+                    {/* Add subtask input */}
+                    <div className="flex items-center gap-2 rounded-2xl px-3 py-2.5 mt-2"
+                      style={{background:'rgba(255,255,255,0.05)',
+                              border:'1px solid rgba(255,255,255,0.08)'}}>
+                      <input
+                        value={newSub}
+                        onChange={e => setNewSub(e.target.value)}
+                        onKeyDown={e => e.key==='Enter' && addSub()}
+                        placeholder="أضف مهمة فرعية..."
+                        className="flex-1 bg-transparent text-sm text-white
+                                   placeholder-white/25 outline-none text-right"
+                      />
+                      <motion.button whileTap={{scale:.82}} onClick={addSub}
+                        className="w-7 h-7 rounded-xl flex items-center justify-center flex-shrink-0"
+                        style={{background:`linear-gradient(135deg,${pal.a},${pal.b})`}}>
+                        <Plus size={13} className="text-white" />
+                      </motion.button>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        </GCard>
+      </motion.div>
+    );
+  }
+
+  /* ═══════════════════════════════════════════════════════════════════
+     GOALS TAB
+  ═══════════════════════════════════════════════════════════════════ */
+  function GoalsTab({ goals, onDelete, onToggleSub, onDeleteSub, onAddSub, openAdd }) {
+    return (
+      <div className="flex flex-col gap-3 pb-4">
+        <AnimatePresence>
+          {goals.length === 0 && (
+            <motion.div key="empty"
+              initial={{opacity:0,y:20}} animate={{opacity:1,y:0}}
+              className="flex flex-col items-center gap-5 py-20 text-center"
+            >
+              <div className="w-24 h-24 rounded-3xl flex items-center justify-center"
+                style={{background:'rgba(124,58,237,0.18)',
+                        border:'1px solid rgba(124,58,237,0.3)'}}>
+                <Target size={40} color="rgba(168,85,247,0.8)" />
+              </div>
+              <div>
+                <p className="text-white text-xl font-black mb-1">ابدأ رحلتك!</p>
+                <p className="text-white/35 text-sm">أضف هدفك الأول وابدأ التتبع</p>
+              </div>
+              <GBtn palette={PALETTE[0]} onClick={openAdd}
+                className="px-6 py-3.5 rounded-2xl text-sm">
+                <Plus size={16} />
+                أضف أول هدف
+              </GBtn>
+            </motion.div>
+          )}
+          {goals.map((g,i) => (
+            <GoalCard key={g.id} goal={g}
+              pal={PALETTE[g.colorIdx ?? i % PALETTE.length]}
+              onDelete={()      => onDelete(g.id)}
+              onToggleSub={sid  => onToggleSub(g.id, sid)}
+              onDeleteSub={sid  => onDeleteSub(g.id, sid)}
+              onAddSub={text    => onAddSub(g.id, text)}
+            />
+          ))}
+        </AnimatePresence>
+      </div>
+    );
+  }
+
+  /* ═══════════════════════════════════════════════════════════════════
+     ADD-GOAL BOTTOM SHEET
+     Slides up from the bottom; dismisses on backdrop tap
+  ═══════════════════════════════════════════════════════════════════ */
+  function AddSheet({ onClose, onAdd }) {
+    const [title, setTitle] = useState('');
+    const [desc,  setDesc]  = useState('');
+
+    const submit = () => {
+      if (!title.trim()) return;
+      onAdd({ title: title.trim(), description: desc.trim() });
+      onClose();
+    };
+
+    return (
+      <motion.div
+        initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}}
+        className="fixed inset-0 z-50 flex flex-col justify-end"
+        style={{background:'rgba(0,0,0,0.6)',backdropFilter:'blur(6px)',
+                WebkitBackdropFilter:'blur(6px)'}}
+        onClick={e => e.target===e.currentTarget && onClose()}
+      >
+        <motion.div
+          initial={{y:'100%'}} animate={{y:0}} exit={{y:'100%'}}
+          transition={{type:'spring',stiffness:280,damping:28}}
+          className="rounded-t-[2.25rem] overflow-hidden"
+          style={{
+            background:'linear-gradient(170deg,#13093a,#0d1b38)',
+            border:'1px solid rgba(255,255,255,0.09)',
+            paddingBottom:'env(safe-area-inset-bottom,34px)',
+          }}
+        >
+          {/* Drag handle */}
+          <div className="flex justify-center pt-3 pb-0.5">
+            <div className="w-9 h-[3.5px] rounded-full"
+                 style={{background:'rgba(255,255,255,0.18)'}} />
+          </div>
+
+          <div className="px-5 pt-3 pb-2">
+            {/* Header */}
+            <div className="flex items-center justify-between mb-5">
+              <h2 className="text-white text-xl font-black flex items-center gap-2">
+                <Sparkles size={20} color="#a855f7" />
+                هدف جديد
+              </h2>
+              <motion.button whileTap={{scale:.85}} onClick={onClose}
+                className="w-9 h-9 rounded-2xl flex items-center justify-center"
+                style={{background:'rgba(255,255,255,0.07)'}}>
+                <X size={17} color="rgba(255,255,255,0.55)" />
+              </motion.button>
+            </div>
+
+            {/* Fields */}
+            <div className="space-y-3 mb-5">
+              <div>
+                <label className="block text-white/45 text-xs font-semibold mb-2">
+                  عنوان الهدف *
+                </label>
+                <input autoFocus
+                  value={title} onChange={e=>setTitle(e.target.value)}
+                  onKeyDown={e=>e.key==='Enter'&&submit()}
+                  placeholder="ما الهدف الذي تريد تحقيقه؟"
+                  className="w-full rounded-2xl px-4 py-3.5 text-white
+                             placeholder-white/22 outline-none text-right"
+                  style={{background:'rgba(255,255,255,0.07)',
+                          border:'1px solid rgba(255,255,255,0.1)'}}
+                />
+              </div>
+              <div>
+                <label className="block text-white/45 text-xs font-semibold mb-2">
+                  وصف (اختياري)
+                </label>
+                <textarea rows={2}
+                  value={desc} onChange={e=>setDesc(e.target.value)}
+                  placeholder="وصف مختصر للهدف..."
+                  className="w-full rounded-2xl px-4 py-3.5 text-white
+                             placeholder-white/22 outline-none resize-none text-right"
+                  style={{background:'rgba(255,255,255,0.07)',
+                          border:'1px solid rgba(255,255,255,0.1)'}}
+                />
+              </div>
+            </div>
+
+            {/* Action buttons */}
+            <div className="flex gap-3">
+              <GBtn palette={PALETTE[0]} onClick={submit}
+                className="flex-1 py-4 rounded-2xl text-base">
+                إضافة الهدف
+              </GBtn>
+              <motion.button whileTap={{scale:.95}} onClick={onClose}
+                className="px-5 py-4 rounded-2xl text-white/55 font-semibold text-sm"
+                style={{background:'rgba(255,255,255,0.07)',
+                        border:'1px solid rgba(255,255,255,0.09)'}}>
+                إلغاء
+              </motion.button>
+            </div>
+          </div>
+        </motion.div>
+      </motion.div>
+    );
+  }
+
+  /* ═══════════════════════════════════════════════════════════════════
+     MAIN APP
+  ═══════════════════════════════════════════════════════════════════ */
+  function App() {
+    const [goals,   setGoals]   = useState(() => {
+      try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; }
+      catch { return []; }
+    });
+    const [tab,     setTab]     = useState('dashboard');
+    const [showAdd, setShowAdd] = useState(false);
+
+    /* Persist */
+    useEffect(() => {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(goals));
+    }, [goals]);
+
+    /* CRUD */
+    const addGoal     = useCallback(({ title, description }) => {
+      setGoals(p => [{
+        id: uid(), title, description, subtasks:[],
+        colorIdx: p.length % PALETTE.length,
+        createdAt: Date.now(),
+      }, ...p]);
+    }, []);
+    const deleteGoal  = useCallback(id => setGoals(p=>p.filter(g=>g.id!==id)), []);
+    const addSubtask  = useCallback((gid,text) =>
+      setGoals(p=>p.map(g=>g.id!==gid?g:{
+        ...g, subtasks:[...g.subtasks,{id:uid(),text,done:false}]
+      })), []);
+    const delSubtask  = useCallback((gid,sid) =>
+      setGoals(p=>p.map(g=>g.id!==gid?g:{
+        ...g, subtasks:g.subtasks.filter(s=>s.id!==sid)
+      })), []);
+    const toggleSub   = useCallback((gid,sid) => {
+      const today = new Date().getDay();
+      setGoals(p=>p.map(g=>g.id!==gid?g:{
+        ...g, subtasks:g.subtasks.map(s=>s.id!==sid?s:{
+          ...s, done:!s.done, completedDay:!s.done?today:undefined
+        })
+      }));
+    }, []);
+
+    const TABS = [
+      { id:'dashboard', label:'لوحة',  Icon: BarChart2 },
+      { id:'goals',     label:'أهداف', Icon: Target    },
+    ];
+
+    return (
+      <div className="fixed inset-0"
+        style={{background:'linear-gradient(165deg,#080514 0%,#10092e 45%,#07121e 100%)'}}>
+
+        {/* ── Ambient glow orbs (cosmetic) ───────────────────────── */}
+        <div aria-hidden="true" className="absolute inset-0 pointer-events-none overflow-hidden">
+          <div style={{
+            position:'absolute', top:'-8%', right:'-18%',
+            width:280, height:280, borderRadius:'50%', filter:'blur(70px)',
+            background:'radial-gradient(circle,rgba(124,58,237,.28),transparent)',
+          }} />
+          <div style={{
+            position:'absolute', bottom:'18%', left:'-12%',
+            width:220, height:220, borderRadius:'50%', filter:'blur(60px)',
+            background:'radial-gradient(circle,rgba(29,78,216,.22),transparent)',
+          }} />
+        </div>
+
+        {/* ── APP BAR ─────────────────────────────────────────────
+            Height = safe-area-inset-top + 64px (inner)
+        ────────────────────────────────────────────────────────── */}
+        <div className="glass-dark absolute top-0 left-0 right-0 z-30"
+          style={{
+            paddingTop:   'calc(env(safe-area-inset-top,47px) + 10px)',
+            paddingBottom: '10px',
+            paddingLeft:   '18px',
+            paddingRight:  '18px',
+          }}>
+          <div className="flex items-center justify-between" style={{height:44}}>
+
+            {/* Add button (left in RTL = visual right) */}
+            <GBtn palette={PALETTE[0]} onClick={()=>setShowAdd(true)}
+              style={{width:44,height:44,borderRadius:14}}>
+              <Plus size={20} />
+            </GBtn>
+
+            {/* Title */}
+            <div className="text-center">
+              <p className="text-white font-black text-[17px] leading-none tracking-tight">
+                أهدافي
+              </p>
+              <p className="text-white/35 text-[11px] mt-0.5">لوحة تأثير الأهداف</p>
+            </div>
+
+            {/* Goals count badge */}
+            <div className="w-11 h-11 rounded-2xl flex items-center justify-center"
+              style={{background:'rgba(255,255,255,0.07)',
+                      border:'1px solid rgba(255,255,255,0.09)'}}>
+              <span className="text-white font-bold text-sm">{goals.length}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* ── SCROLLABLE CONTENT ──────────────────────────────────
+            Top edge   = safe-area-inset-top + 64px (bar)
+            Bottom edge = safe-area-inset-bottom + 56px (tabs)
+        ────────────────────────────────────────────────────────── */}
+        <div className="scroll-area absolute left-0 right-0"
+          style={{
+            top:    'calc(env(safe-area-inset-top,47px) + 64px)',
+            bottom: 'calc(env(safe-area-inset-bottom,34px) + 56px)',
+            padding: '14px 16px 0',
+          }}>
+
+          <AnimatePresence exitBeforeEnter>
+            {tab === 'dashboard' ? (
+              <motion.div key="dash"
+                initial={{opacity:0,x:22}}
+                animate={{opacity:1,x:0}}
+                exit={{opacity:0,x:-22}}
+                transition={{duration:.2}}>
+                <DashboardTab goals={goals} />
+              </motion.div>
+            ) : (
+              <motion.div key="goals"
+                initial={{opacity:0,x:22}}
+                animate={{opacity:1,x:0}}
+                exit={{opacity:0,x:-22}}
+                transition={{duration:.2}}>
+                <GoalsTab
+                  goals={goals}
+                  onDelete={deleteGoal}
+                  onToggleSub={toggleSub}
+                  onDeleteSub={delSubtask}
+                  onAddSub={addSubtask}
+                  openAdd={()=>setShowAdd(true)}
+                />
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+
+        {/* ── TAB BAR ─────────────────────────────────────────────
+            Height = 56px inner + safe-area-inset-bottom
+        ────────────────────────────────────────────────────────── */}
+        <div className="glass-dark-top absolute left-0 right-0 bottom-0 z-30"
+          style={{
+            paddingBottom: 'env(safe-area-inset-bottom,34px)',
+          }}>
+          <div className="flex" style={{height:56}}>
+            {TABS.map(t => {
+              const active = tab === t.id;
+              return (
+                <motion.button key={t.id}
+                  whileTap={{scale:.9}}
+                  onClick={()=>setTab(t.id)}
+                  className="flex-1 flex flex-col items-center justify-center gap-0.5 relative"
+                >
+                  {/* Active top indicator */}
+                  {active && (
+                    <motion.div layoutId="tabLine"
+                      className="absolute top-0 rounded-b-full"
+                      style={{
+                        width: 36, height: 3,
+                        background:'linear-gradient(to right,#7c3aed,#a855f7)',
+                      }}
+                    />
+                  )}
+
+                  <t.Icon size={22}
+                    color={active ? '#a855f7' : 'rgba(255,255,255,0.28)'}
+                    strokeWidth={active ? 2.2 : 1.8}
+                  />
+                  <span style={{
+                    fontSize:10, fontWeight:700, letterSpacing:.3,
+                    color: active ? '#a855f7' : 'rgba(255,255,255,0.28)',
+                  }}>{t.label}</span>
+                </motion.button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* ── ADD GOAL BOTTOM SHEET ─────────────────────────────── */}
+        <AnimatePresence>
+          {showAdd && (
+            <AddSheet onClose={()=>setShowAdd(false)} onAdd={addGoal} />
+          )}
+        </AnimatePresence>
+      </div>
+    );
+  }
+
+  ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>
