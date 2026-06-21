@@ -1,15 +1,874 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="ar" dir="rtl">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>حاسبة تأسيس المطعم</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;900&display=swap" rel="stylesheet" />
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
-  </body>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>نموذج المخ البشري التفاعلي</title>
+<style>
+  :root {
+    --bg: #050d1a;
+    --surface: #0a1628;
+    --surface2: #0f1f3d;
+    --border: #1a3a6b;
+    --accent: #00d4ff;
+    --text: #c8e0ff;
+    --text-muted: #5a7fa8;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Segoe UI', Tahoma, sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0,212,255,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,212,255,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .page-wrap { position: relative; z-index: 1; padding: 16px; max-width: 600px; margin: 0 auto; }
+
+  header {
+    text-align: center;
+    padding: 20px 0 12px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 20px;
+  }
+  .header-tag {
+    display: inline-block;
+    font-size: 10px;
+    letter-spacing: 3px;
+    color: var(--accent);
+    text-transform: uppercase;
+    border: 1px solid var(--accent);
+    padding: 3px 10px;
+    border-radius: 2px;
+    margin-bottom: 10px;
+    opacity: 0.8;
+  }
+  header h1 {
+    font-size: clamp(18px, 5vw, 26px);
+    font-weight: 700;
+    background: linear-gradient(135deg, #fff 30%, var(--accent));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    line-height: 1.3;
+  }
+  header p { font-size: 12px; color: var(--text-muted); margin-top: 6px; }
+
+  .brain-container {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 16px;
+    margin-bottom: 20px;
+    position: relative;
+    box-shadow: inset 0 0 40px rgba(0,0,0,0.4), 0 0 30px rgba(0,212,255,0.05);
+  }
+  .brain-container::before {
+    content: 'NEURAL MAP v3.0';
+    position: absolute;
+    top: 10px;
+    left: 14px;
+    font-size: 9px;
+    letter-spacing: 2px;
+    color: var(--text-muted);
+  }
+  .brain-container::after {
+    content: '● LIVE';
+    position: absolute;
+    top: 10px;
+    right: 14px;
+    font-size: 9px;
+    color: #3dd68c;
+    letter-spacing: 1px;
+    animation: blink 2s ease-in-out infinite;
+  }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+  .brain-svg-wrapper {
+    margin-top: 8px;
+    display: flex;
+    justify-content: center;
+  }
+
+  svg#brain {
+    width: 100%;
+    max-width: 520px;
+    height: auto;
+    filter: drop-shadow(0 0 24px rgba(0,212,255,0.12));
+  }
+
+  .brain-region {
+    cursor: pointer;
+    transition: filter 0.2s;
+  }
+  .brain-region:hover > path,
+  .brain-region:hover > ellipse {
+    filter: brightness(1.35) drop-shadow(0 0 10px currentColor);
+  }
+  .brain-region.active > path,
+  .brain-region.active > ellipse {
+    animation: pulse-r 1.4s ease-in-out infinite;
+  }
+  @keyframes pulse-r {
+    0%,100%{ filter: brightness(1.5) drop-shadow(0 0 10px currentColor); }
+    50%{ filter: brightness(2) drop-shadow(0 0 22px currentColor); }
+  }
+
+  .region-label {
+    font-size: 10px;
+    fill: rgba(255,255,255,0.92);
+    font-family: 'Segoe UI', sans-serif;
+    pointer-events: none;
+    text-anchor: middle;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.8);
+  }
+
+  .tap-hint {
+    text-align: center;
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 10px;
+    letter-spacing: 1px;
+  }
+
+  .legend {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 20px;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 10px;
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s;
+  }
+  .legend-item:hover { border-color: var(--accent); background: var(--surface2); }
+  .legend-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+  .legend-text { font-size: 11px; color: var(--text); line-height: 1.3; }
+
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.75);
+    z-index: 100;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s;
+    backdrop-filter: blur(4px);
+  }
+  .modal-overlay.open { opacity: 1; pointer-events: all; }
+
+  .modal {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px 20px 0 0;
+    width: 100%;
+    max-width: 600px;
+    max-height: 85vh;
+    overflow-y: auto;
+    transform: translateY(100%);
+    transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    padding: 0 0 32px;
+  }
+  .modal-overlay.open .modal { transform: translateY(0); }
+
+  .modal-handle { width: 36px; height: 4px; background: var(--border); border-radius: 2px; margin: 12px auto 0; }
+
+  .modal-header {
+    padding: 16px 20px 12px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    position: sticky;
+    top: 0;
+    background: var(--surface);
+    z-index: 2;
+  }
+  .modal-color-dot { width: 14px; height: 14px; border-radius: 50%; flex-shrink: 0; box-shadow: 0 0 10px currentColor; }
+  .modal-title { font-size: 18px; font-weight: 700; color: #fff; flex: 1; }
+  .modal-close {
+    width: 30px; height: 30px; border-radius: 50%;
+    background: var(--surface2); border: 1px solid var(--border);
+    color: var(--text-muted); font-size: 16px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.2s;
+  }
+  .modal-close:hover { color: #fff; border-color: var(--accent); }
+
+  .modal-body { padding: 16px 20px 0; }
+
+  .info-section {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px 16px;
+    margin-bottom: 12px;
+    animation: fadeUpIn 0.4s both;
+  }
+  .info-section:nth-child(2) { animation-delay: 0.08s; }
+  .info-section:nth-child(3) { animation-delay: 0.16s; }
+
+  @keyframes fadeUpIn {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .section-tag {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-size: 9px; letter-spacing: 2px; text-transform: uppercase;
+    color: var(--accent); margin-bottom: 8px;
+  }
+  .section-tag .dot { width: 5px; height: 5px; border-radius: 50%; background: var(--accent); }
+
+  .info-section h3 { font-size: 13px; color: #fff; font-weight: 600; margin-bottom: 6px; line-height: 1.4; }
+  .info-section p, .info-section li { font-size: 12.5px; color: var(--text); line-height: 1.7; }
+  .info-section ul { padding-right: 16px; }
+  .info-section li { margin-bottom: 4px; }
+
+  .headache-location {
+    display: flex; align-items: flex-start; gap: 10px;
+    padding: 10px 12px;
+    background: rgba(232,93,150,0.08);
+    border: 1px solid rgba(232,93,150,0.2);
+    border-radius: 8px; margin-top: 8px;
+  }
+  .pain-icon { font-size: 22px; flex-shrink: 0; margin-top: 2px; }
+  .pain-text { font-size: 12px; color: var(--text); line-height: 1.6; }
+
+  footer {
+    text-align: center; padding: 12px 0 20px;
+    color: var(--text-muted); font-size: 10px; letter-spacing: 1px;
+    border-top: 1px solid var(--border); margin-top: 4px;
+  }
+
+  .scan-line { animation: scan 3s linear infinite; }
+  @keyframes scan {
+    from { transform: translateY(-220px); opacity: 0.6; }
+    to   { transform: translateY(430px); opacity: 0; }
+  }
+</style>
+</head>
+<body>
+
+<div class="page-wrap">
+  <header>
+    <div class="header-tag">Neuroanatomy Interactive</div>
+    <h1>نموذج المخ البشري<br>التفاعلي</h1>
+    <p>اضغط على أي منطقة لعرض تفاصيلها الطبية</p>
+  </header>
+
+  <div class="brain-container">
+    <div class="brain-svg-wrapper">
+
+<!-- ═══════════════════════════════════════════════════════
+     REALISTIC BRAIN SVG — Lateral View (Right Hemisphere)
+     Anterior (Front) = LEFT   |   Posterior (Back) = RIGHT
+     ═══════════════════════════════════════════════════════ -->
+<svg id="brain" viewBox="0 0 520 390" xmlns="http://www.w3.org/2000/svg">
+<defs>
+  <!-- ── Lobe radial gradients for depth ── -->
+  <radialGradient id="gf" cx="32%" cy="42%" r="68%">
+    <stop offset="0%" stop-color="#f5a0c0"/>
+    <stop offset="100%" stop-color="#b82860"/>
+  </radialGradient>
+  <radialGradient id="gp" cx="52%" cy="38%" r="68%">
+    <stop offset="0%" stop-color="#fcd090"/>
+    <stop offset="100%" stop-color="#c47010"/>
+  </radialGradient>
+  <radialGradient id="gt" cx="50%" cy="52%" r="68%">
+    <stop offset="0%" stop-color="#7aebb8"/>
+    <stop offset="100%" stop-color="#1e9860"/>
+  </radialGradient>
+  <radialGradient id="go" cx="58%" cy="44%" r="68%">
+    <stop offset="0%" stop-color="#cbb0ff"/>
+    <stop offset="100%" stop-color="#6830d8"/>
+  </radialGradient>
+  <radialGradient id="gc" cx="50%" cy="40%" r="68%">
+    <stop offset="0%" stop-color="#ffaaaa"/>
+    <stop offset="100%" stop-color="#c03030"/>
+  </radialGradient>
+  <radialGradient id="gb" cx="50%" cy="32%" r="68%">
+    <stop offset="0%" stop-color="#80f0cc"/>
+    <stop offset="100%" stop-color="#1a9870"/>
+  </radialGradient>
+  <radialGradient id="gi" cx="50%" cy="50%" r="68%">
+    <stop offset="0%" stop-color="#98c8ff"/>
+    <stop offset="100%" stop-color="#3060c0"/>
+  </radialGradient>
+  <radialGradient id="gcc" cx="50%" cy="50%" r="68%">
+    <stop offset="0%" stop-color="#ffe080"/>
+    <stop offset="100%" stop-color="#d09010"/>
+  </radialGradient>
+
+  <!-- ── Scan line gradient ── -->
+  <linearGradient id="scanGrad" x1="0" y1="0" x2="1" y2="0">
+    <stop offset="0%" stop-color="transparent"/>
+    <stop offset="50%" stop-color="#00d4ff"/>
+    <stop offset="100%" stop-color="transparent"/>
+  </linearGradient>
+
+  <!-- ── Clip path for scan line ── -->
+  <clipPath id="brainClip">
+    <ellipse cx="268" cy="185" rx="225" ry="185"/>
+  </clipPath>
+</defs>
+
+<!-- Background -->
+<rect width="520" height="390" fill="#050d1a" rx="12"/>
+
+<!-- ════════════════════════════════════
+     1. CEREBELLUM  (draw first = behind)
+     ════════════════════════════════════ -->
+<g class="brain-region" data-region="cerebellum" onclick="openModal('cerebellum')">
+  <!-- Main cerebellar body -->
+  <path d="
+    M 315 260
+    C 328 248, 362 244, 398 250
+    C 432 256, 460 272, 466 292
+    C 472 312, 456 330, 432 338
+    C 408 346, 375 344, 348 334
+    C 320 324, 305 308, 305 290
+    C 305 274, 308 268, 315 260 Z
+  " fill="url(#gc)" opacity="0.92" stroke="rgba(255,140,140,0.3)" stroke-width="1"/>
+
+  <!-- Cerebellar folia — the characteristic horizontal ridges -->
+  <g fill="none" stroke-linecap="round" pointer-events="none">
+    <path d="M 322 264 C 352 259, 395 261, 428 270" stroke="rgba(0,0,0,0.45)" stroke-width="2.2"/>
+    <path d="M 318 275 C 350 269, 396 271, 432 282" stroke="rgba(0,0,0,0.45)" stroke-width="2.2"/>
+    <path d="M 314 287 C 348 281, 396 283, 434 295" stroke="rgba(0,0,0,0.45)" stroke-width="2.2"/>
+    <path d="M 312 299 C 347 293, 396 295, 432 308" stroke="rgba(0,0,0,0.45)" stroke-width="2.2"/>
+    <path d="M 312 312 C 348 306, 395 308, 428 320" stroke="rgba(0,0,0,0.45)" stroke-width="2.2"/>
+    <path d="M 316 324 C 350 318, 390 320, 420 330" stroke="rgba(0,0,0,0.45)" stroke-width="2.2"/>
+    <path d="M 325 334 C 355 329, 385 330, 408 338" stroke="rgba(0,0,0,0.45)" stroke-width="2.2"/>
+    <!-- Highlight lines between folia (lighter) -->
+    <path d="M 322 269 C 352 264, 395 266, 428 275" stroke="rgba(255,200,200,0.18)" stroke-width="1"/>
+    <path d="M 318 280 C 350 274, 396 276, 432 287" stroke="rgba(255,200,200,0.18)" stroke-width="1"/>
+    <path d="M 314 292 C 348 286, 396 288, 434 300" stroke="rgba(255,200,200,0.18)" stroke-width="1"/>
+    <path d="M 312 304 C 347 298, 396 300, 432 313" stroke="rgba(255,200,200,0.18)" stroke-width="1"/>
+    <path d="M 312 317 C 348 311, 395 313, 428 325" stroke="rgba(255,200,200,0.18)" stroke-width="1"/>
+    <!-- Vertical mid division -->
+    <path d="M 388 252 C 388 280, 386 310, 382 336" stroke="rgba(0,0,0,0.28)" stroke-width="1.5"/>
+  </g>
+  <text class="region-label" x="390" y="302" font-size="10" font-weight="600">المخيخ</text>
+</g>
+
+<!-- ════════════════════════════════════
+     2. BRAINSTEM
+     ════════════════════════════════════ -->
+<g class="brain-region" data-region="brainstem" onclick="openModal('brainstem')">
+  <path d="
+    M 238 272
+    C 233 288, 228 308, 229 326
+    C 230 344, 238 360, 250 368
+    C 262 376, 278 374, 288 364
+    C 298 354, 303 337, 302 320
+    C 301 302, 295 284, 290 270
+    C 282 260, 268 256, 260 256
+    C 250 256, 242 264, 238 272 Z
+  " fill="url(#gb)" opacity="0.92" stroke="rgba(100,240,180,0.3)" stroke-width="1"/>
+
+  <!-- Brainstem surface bands (pyramidal tracts) -->
+  <g fill="none" stroke-linecap="round" pointer-events="none">
+    <path d="M 236 280 C 250 277, 270 277, 286 281" stroke="rgba(0,0,0,0.4)" stroke-width="1.8"/>
+    <path d="M 232 294 C 247 291, 270 291, 288 296" stroke="rgba(0,0,0,0.4)" stroke-width="1.8"/>
+    <path d="M 230 309 C 245 306, 270 306, 292 311" stroke="rgba(0,0,0,0.4)" stroke-width="1.8"/>
+    <path d="M 230 324 C 245 321, 270 321, 294 326" stroke="rgba(0,0,0,0.4)" stroke-width="1.8"/>
+    <path d="M 232 340 C 246 337, 269 337, 292 342" stroke="rgba(0,0,0,0.4)" stroke-width="1.8"/>
+    <path d="M 236 355 C 250 352, 268 352, 286 357" stroke="rgba(0,0,0,0.4)" stroke-width="1.8"/>
+    <!-- Highlights -->
+    <path d="M 236 284 C 250 281, 270 281, 286 285" stroke="rgba(150,255,210,0.18)" stroke-width="0.8"/>
+    <path d="M 232 298 C 247 295, 270 295, 288 300" stroke="rgba(150,255,210,0.18)" stroke-width="0.8"/>
+    <path d="M 230 313 C 245 310, 270 310, 292 315" stroke="rgba(150,255,210,0.18)" stroke-width="0.8"/>
+    <!-- Midline groove -->
+    <path d="M 264 258 C 264 295, 265 330, 266 368" stroke="rgba(0,0,0,0.3)" stroke-width="1.2"/>
+  </g>
+  <text class="region-label" x="265" y="320" font-size="8.5">جذع الدماغ</text>
+</g>
+
+<!-- ════════════════════════════════════
+     3. OCCIPITAL LOBE
+     ════════════════════════════════════ -->
+<g class="brain-region" data-region="occipital" onclick="openModal('occipital')">
+  <path d="
+    M 385 68
+    C 410 78, 440 100, 456 128
+    C 472 158, 472 192, 460 220
+    C 448 248, 425 264, 398 268
+    C 372 272, 345 262, 326 244
+    C 308 226, 298 200, 299 174
+    C 300 148, 312 124, 330 106
+    C 348 88, 368 76, 385 68 Z
+  " fill="url(#go)" opacity="0.88" stroke="rgba(180,140,255,0.3)" stroke-width="1"/>
+
+  <!-- Occipital gyri — roughly vertical curved lines -->
+  <g fill="none" stroke-linecap="round" pointer-events="none">
+    <path d="M 398 80 C 422 98, 444 124, 450 158" stroke="rgba(0,0,0,0.38)" stroke-width="1.8"/>
+    <path d="M 380 90 C 402 110, 424 138, 430 172" stroke="rgba(0,0,0,0.38)" stroke-width="1.8"/>
+    <path d="M 360 106 C 380 128, 400 158, 404 192" stroke="rgba(0,0,0,0.38)" stroke-width="1.8"/>
+    <path d="M 342 128 C 358 150, 372 180, 372 214" stroke="rgba(0,0,0,0.38)" stroke-width="1.8"/>
+    <path d="M 330 158 C 338 178, 342 206, 338 234" stroke="rgba(0,0,0,0.38)" stroke-width="1.8"/>
+    <!-- Calcarine sulcus (horizontal) -->
+    <path d="M 310 182 C 338 175, 374 172, 412 176" stroke="rgba(0,0,0,0.45)" stroke-width="2"/>
+    <!-- Highlights -->
+    <path d="M 398 85 C 422 103, 444 129, 450 163" stroke="rgba(200,170,255,0.15)" stroke-width="0.8"/>
+    <path d="M 380 95 C 402 115, 424 143, 430 177" stroke="rgba(200,170,255,0.15)" stroke-width="0.8"/>
+    <path d="M 360 111 C 380 133, 400 163, 404 197" stroke="rgba(200,170,255,0.15)" stroke-width="0.8"/>
+    <path d="M 342 133 C 358 155, 372 185, 372 219" stroke="rgba(200,170,255,0.15)" stroke-width="0.8"/>
+  </g>
+  <text class="region-label" x="408" y="172" font-size="9.5" font-weight="600">الفص القذالي</text>
+</g>
+
+<!-- ════════════════════════════════════
+     4. TEMPORAL LOBE  (main body)
+     ════════════════════════════════════ -->
+<g class="brain-region" data-region="temporal" onclick="openModal('temporal')">
+  <!-- Main temporal body -->
+  <path d="
+    M 172 202
+    C 200 196, 238 193, 278 195
+    C 318 197, 356 203, 382 214
+    C 406 224, 416 238, 412 255
+    C 408 270, 390 282, 362 288
+    C 330 295, 292 296, 255 293
+    C 215 290, 176 280, 150 265
+    C 125 250, 110 232, 112 217
+    C 114 205, 128 200, 148 200
+    Z
+  " fill="url(#gt)" opacity="0.88" stroke="rgba(80,220,150,0.3)" stroke-width="1"/>
+
+  <!-- Temporal gyri — horizontal wavy lines (the 3 main temporal gyri) -->
+  <g fill="none" stroke-linecap="round" pointer-events="none">
+    <!-- Superior temporal gyrus (just below Sylvian fissure) -->
+    <path d="M 148 210 C 195 205, 265 203, 340 208 C 370 212, 394 222, 410 234"
+          stroke="rgba(0,0,0,0.38)" stroke-width="2"/>
+    <!-- Middle temporal gyrus -->
+    <path d="M 136 226 C 183 221, 255 219, 332 224 C 365 228, 392 240, 406 254"
+          stroke="rgba(0,0,0,0.38)" stroke-width="2"/>
+    <!-- Inferior temporal gyrus -->
+    <path d="M 132 244 C 178 239, 252 237, 328 242 C 360 246, 386 258, 398 272"
+          stroke="rgba(0,0,0,0.38)" stroke-width="2"/>
+    <!-- Highlights between gyri -->
+    <path d="M 148 215 C 195 210, 265 208, 340 213 C 370 217, 394 227, 410 239"
+          stroke="rgba(130,255,190,0.15)" stroke-width="0.8"/>
+    <path d="M 136 231 C 183 226, 255 224, 332 229 C 365 233, 392 245, 406 259"
+          stroke="rgba(130,255,190,0.15)" stroke-width="0.8"/>
+    <path d="M 132 249 C 178 244, 252 242, 328 247 C 360 251, 386 263, 398 277"
+          stroke="rgba(130,255,190,0.15)" stroke-width="0.8"/>
+  </g>
+
+  <!-- Temporal pole (protrudes forward-downward) -->
+  <path d="
+    M 148 200
+    C 132 202, 115 208, 104 222
+    C 92 236, 90 254, 98 268
+    C 106 282, 122 290, 140 290
+    C 158 290, 172 280, 178 265
+    C 184 250, 180 232, 170 220
+    C 164 212, 156 204, 148 200 Z
+  " fill="url(#gt)" opacity="0.85"/>
+
+  <!-- Temporal pole gyri -->
+  <g fill="none" stroke-linecap="round" pointer-events="none">
+    <path d="M 108 224 C 122 218, 142 218, 158 226" stroke="rgba(0,0,0,0.35)" stroke-width="1.5"/>
+    <path d="M 100 242 C 116 237, 140 237, 158 246" stroke="rgba(0,0,0,0.35)" stroke-width="1.5"/>
+    <path d="M 98 260 C 114 255, 138 255, 155 264" stroke="rgba(0,0,0,0.35)" stroke-width="1.5"/>
+  </g>
+
+  <text class="region-label" x="268" y="255" font-size="9.5" font-weight="600">الفص الصدغي</text>
+</g>
+
+<!-- ════════════════════════════════════
+     5. PARIETAL LOBE
+     ════════════════════════════════════ -->
+<g class="brain-region" data-region="parietal" onclick="openModal('parietal')">
+  <path d="
+    M 252 44
+    C 288 36, 338 44, 376 62
+    C 400 74, 412 92, 406 112
+    C 400 132, 380 148, 354 158
+    C 328 168, 298 172, 270 170
+    C 248 168, 234 160, 230 148
+    C 226 134, 232 118, 240 104
+    C 248 90, 252 68, 252 44 Z
+  " fill="url(#gp)" opacity="0.88" stroke="rgba(240,170,80,0.3)" stroke-width="1"/>
+
+  <!-- Parietal gyri — curved lines following lobe contour -->
+  <g fill="none" stroke-linecap="round" pointer-events="none">
+    <path d="M 258 52 C 295 44, 342 52, 372 68" stroke="rgba(0,0,0,0.35)" stroke-width="1.8"/>
+    <path d="M 256 70 C 292 62, 340 70, 372 86" stroke="rgba(0,0,0,0.35)" stroke-width="1.8"/>
+    <path d="M 252 89 C 286 81, 336 89, 368 105" stroke="rgba(0,0,0,0.35)" stroke-width="1.8"/>
+    <path d="M 246 110 C 278 102, 326 110, 355 126" stroke="rgba(0,0,0,0.35)" stroke-width="1.8"/>
+    <path d="M 238 132 C 266 124, 312 132, 340 146" stroke="rgba(0,0,0,0.35)" stroke-width="1.8"/>
+    <path d="M 232 152 C 254 145, 296 152, 322 164" stroke="rgba(0,0,0,0.35)" stroke-width="1.8"/>
+    <!-- Highlights -->
+    <path d="M 258 57 C 295 49, 342 57, 372 73" stroke="rgba(255,210,130,0.15)" stroke-width="0.8"/>
+    <path d="M 256 75 C 292 67, 340 75, 372 91" stroke="rgba(255,210,130,0.15)" stroke-width="0.8"/>
+    <path d="M 252 94 C 286 86, 336 94, 368 110" stroke="rgba(255,210,130,0.15)" stroke-width="0.8"/>
+    <path d="M 246 115 C 278 107, 326 115, 355 131" stroke="rgba(255,210,130,0.15)" stroke-width="0.8"/>
+    <path d="M 238 137 C 266 129, 312 137, 340 151" stroke="rgba(255,210,130,0.15)" stroke-width="0.8"/>
+  </g>
+  <text class="region-label" x="322" y="115" font-size="9.5" font-weight="600">الفص الجداري</text>
+</g>
+
+<!-- ════════════════════════════════════
+     6. FRONTAL LOBE  (largest, in front)
+     ════════════════════════════════════ -->
+<g class="brain-region" data-region="frontal" onclick="openModal('frontal')">
+  <path d="
+    M 252 44
+    C 230 38, 200 42, 172 56
+    C 142 72, 114 96, 96 126
+    C 78 156, 72 186, 78 212
+    C 84 238, 100 256, 120 264
+    C 136 272, 154 270, 165 260
+    C 176 250, 180 236, 176 220
+    C 172 204, 162 188, 152 172
+    C 140 154, 128 134, 126 112
+    C 124 90, 136 70, 154 57
+    C 174 44, 204 38, 235 42
+    Z
+  " fill="url(#gf)" opacity="0.88" stroke="rgba(240,130,170,0.3)" stroke-width="1"/>
+
+  <!-- Frontal gyri — the most visible feature of frontal lobe -->
+  <g fill="none" stroke-linecap="round" pointer-events="none">
+    <!-- Superior frontal gyrus (runs along top edge, curving down) -->
+    <path d="M 192 52 C 175 62, 154 80, 138 102 C 122 124, 114 152, 116 180"
+          stroke="rgba(0,0,0,0.35)" stroke-width="1.8"/>
+    <!-- Middle frontal gyrus -->
+    <path d="M 214 50 C 196 62, 173 82, 156 106 C 138 130, 130 162, 130 192"
+          stroke="rgba(0,0,0,0.35)" stroke-width="1.8"/>
+    <!-- Inferior frontal gyrus -->
+    <path d="M 236 46 C 218 60, 194 82, 176 108 C 158 134, 150 165, 150 194"
+          stroke="rgba(0,0,0,0.35)" stroke-width="1.8"/>
+    <!-- Pre-central gyrus (just anterior to central sulcus) -->
+    <path d="M 248 44 C 243 68, 238 96, 234 126 C 230 154, 226 180, 224 202"
+          stroke="rgba(0,0,0,0.35)" stroke-width="1.8"/>
+    <!-- Horizontal cross-connections -->
+    <path d="M 100 132 C 124 125, 155 122, 185 126 C 210 130, 228 138, 238 148"
+          stroke="rgba(0,0,0,0.3)" stroke-width="1.5"/>
+    <path d="M 90 162 C 115 156, 148 153, 178 157 C 203 161, 220 170, 228 182"
+          stroke="rgba(0,0,0,0.3)" stroke-width="1.5"/>
+    <path d="M 85 190 C 110 185, 145 182, 172 186 C 196 190, 214 200, 220 212"
+          stroke="rgba(0,0,0,0.3)" stroke-width="1.5"/>
+    <!-- Highlights between gyri -->
+    <path d="M 192 57 C 175 67, 154 85, 138 107 C 122 129, 114 157, 116 185"
+          stroke="rgba(255,170,200,0.15)" stroke-width="0.8"/>
+    <path d="M 214 55 C 196 67, 173 87, 156 111 C 138 135, 130 167, 130 197"
+          stroke="rgba(255,170,200,0.15)" stroke-width="0.8"/>
+    <path d="M 236 51 C 218 65, 194 87, 176 113 C 158 139, 150 170, 150 199"
+          stroke="rgba(255,170,200,0.15)" stroke-width="0.8"/>
+    <path d="M 100 137 C 124 130, 155 127, 185 131 C 210 135, 228 143, 238 153"
+          stroke="rgba(255,170,200,0.15)" stroke-width="0.8"/>
+    <path d="M 90 167 C 115 161, 148 158, 178 162 C 203 166, 220 175, 228 187"
+          stroke="rgba(255,170,200,0.15)" stroke-width="0.8"/>
+  </g>
+  <text class="region-label" x="140" y="160" font-size="9.5" font-weight="600">الفص الجبهي</text>
+</g>
+
+<!-- ════════════════════════════════════
+     7. INSULA  (peeking at Sylvian junction)
+     ════════════════════════════════════ -->
+<g class="brain-region" data-region="insula" onclick="openModal('insula')">
+  <ellipse cx="218" cy="193" rx="40" ry="17"
+           fill="url(#gi)" opacity="0.75" stroke="rgba(100,160,255,0.4)" stroke-width="1"/>
+  <text class="region-label" x="218" y="197" font-size="8.5">الجزيرة</text>
+</g>
+
+<!-- ════════════════════════════════════
+     8. CORPUS CALLOSUM
+     ════════════════════════════════════ -->
+<g class="brain-region" data-region="corpus" onclick="openModal('corpus')">
+  <ellipse cx="244" cy="175" rx="42" ry="13"
+           fill="url(#gcc)" opacity="0.7" stroke="rgba(255,200,80,0.4)" stroke-width="1"/>
+  <text class="region-label" x="244" y="179" font-size="7.5">الجسم الثفني</text>
+</g>
+
+<!-- ════════════════════════════════════
+     9. MAJOR SULCI  (drawn on top)
+     ════════════════════════════════════ -->
+<g fill="none" stroke-linecap="round">
+  <!-- ── Central sulcus (divides frontal / parietal) ── -->
+  <path d="M 250 46 C 247 70, 244 98, 242 128 C 240 156, 238 180, 238 202"
+        stroke="rgba(0,0,0,0.7)" stroke-width="3.5"/>
+  <!-- Highlight edge -->
+  <path d="M 250 46 C 247 70, 244 98, 242 128 C 240 156, 238 180, 238 202"
+        stroke="rgba(255,255,255,0.1)" stroke-width="1.2"/>
+
+  <!-- ── Sylvian / Lateral fissure (most prominent groove) ── -->
+  <path d="M 148 200 C 180 194, 218 191, 260 193 C 302 195, 344 202, 380 214 C 402 224, 414 238, 418 255"
+        stroke="rgba(0,0,0,0.72)" stroke-width="4"/>
+  <path d="M 148 200 C 180 194, 218 191, 260 193 C 302 195, 344 202, 380 214 C 402 224, 414 238, 418 255"
+        stroke="rgba(255,255,255,0.1)" stroke-width="1.5"/>
+
+  <!-- ── Parieto-occipital sulcus ── -->
+  <path d="M 385 68 C 381 92, 375 120, 368 148 C 360 175, 348 198, 336 216"
+        stroke="rgba(0,0,0,0.55)" stroke-width="2.8"/>
+  <path d="M 385 68 C 381 92, 375 120, 368 148 C 360 175, 348 198, 336 216"
+        stroke="rgba(255,255,255,0.08)" stroke-width="1"/>
+
+  <!-- ── Post-central sulcus (behind post-central gyrus) ── -->
+  <path d="M 258 46 C 255 68, 252 98, 250 130 C 248 158, 246 182, 246 204"
+        stroke="rgba(0,0,0,0.28)" stroke-width="1.8" stroke-dasharray="5,4"/>
+
+  <!-- ── Superior temporal sulcus ── -->
+  <path d="M 140 215 C 185 210, 255 208, 330 215 C 362 219, 390 230, 408 244"
+        stroke="rgba(0,0,0,0.32)" stroke-width="1.8" stroke-dasharray="5,4"/>
+
+  <!-- ── Calcarine sulcus in occipital ── -->
+  <path d="M 308 183 C 340 176, 380 173, 416 178"
+        stroke="rgba(0,0,0,0.4)" stroke-width="2"/>
+</g>
+
+<!-- ════════════════════════════════════
+     10. BRAIN OUTER BOUNDARY HIGHLIGHT
+     ════════════════════════════════════ -->
+<!-- Gives the brain edge definition and depth -->
+<g fill="none" stroke-linecap="round" pointer-events="none">
+  <!-- Superior (top) edge highlight -->
+  <path d="M 155 58 C 190 46, 228 40, 268 40 C 308 40, 348 48, 382 64"
+        stroke="rgba(255,255,255,0.12)" stroke-width="2"/>
+  <!-- Frontal edge highlight -->
+  <path d="M 80 162 C 78 188, 84 215, 98 236 C 108 252, 124 264, 140 270"
+        stroke="rgba(255,255,255,0.1)" stroke-width="1.5"/>
+  <!-- Occipital edge highlight -->
+  <path d="M 386 70 C 412 82, 440 106, 456 134"
+        stroke="rgba(255,255,255,0.1)" stroke-width="1.5"/>
+  <!-- Outer brain stroke for definition -->
+  <path d="
+    M 252 44 C 228 38, 196 42, 168 56 C 138 72, 110 98, 92 130 C 74 162, 70 196, 78 224
+    C 86 252, 105 270, 128 276 C 145 280, 162 275, 172 264 C 182 252, 185 236, 180 220
+  " stroke="rgba(255,255,255,0.06)" stroke-width="2"/>
+</g>
+
+<!-- ════════════════════════════════════
+     11. SCAN LINE ANIMATION
+     ════════════════════════════════════ -->
+<rect x="60" y="0" width="400" height="3"
+      fill="url(#scanGrad)" opacity="0.5"
+      clip-path="url(#brainClip)" class="scan-line"/>
+
+<!-- ════════════════════════════════════
+     12. UI DECORATIONS
+     ════════════════════════════════════ -->
+<!-- Anatomical direction labels -->
+<text x="60" y="55" font-size="8.5" fill="rgba(0,212,255,0.28)" font-family="monospace" letter-spacing="1">ANT</text>
+<text x="448" y="55" font-size="8.5" fill="rgba(0,212,255,0.28)" font-family="monospace" letter-spacing="1">POST</text>
+<text x="20" y="200" font-size="7" fill="rgba(0,212,255,0.22)" font-family="monospace" writing-mode="tb">SUPERIOR</text>
+<text x="498" y="200" font-size="7" fill="rgba(0,212,255,0.22)" font-family="monospace" writing-mode="tb">INFERIOR</text>
+
+<!-- Crosshair indicator -->
+<g stroke="rgba(0,212,255,0.32)" stroke-width="0.8" pointer-events="none">
+  <circle cx="265" cy="175" r="5" fill="none"/>
+  <line x1="256" y1="175" x2="249" y2="175"/>
+  <line x1="274" y1="175" x2="281" y2="175"/>
+  <line x1="265" y1="166" x2="265" y2="159"/>
+  <line x1="265" y1="184" x2="265" y2="191"/>
+</g>
+
+<!-- Scale bar + label -->
+<g pointer-events="none">
+  <line x1="38" y1="375" x2="98" y2="375" stroke="rgba(0,212,255,0.4)" stroke-width="1"/>
+  <line x1="38" y1="370" x2="38" y2="380" stroke="rgba(0,212,255,0.4)" stroke-width="1"/>
+  <line x1="98" y1="370" x2="98" y2="380" stroke="rgba(0,212,255,0.4)" stroke-width="1"/>
+  <text x="68" y="386" font-size="7.5" fill="rgba(0,212,255,0.45)" font-family="monospace" text-anchor="middle" letter-spacing="0.5">LATERAL VIEW</text>
+</g>
+
+<!-- Top-right mode indicator -->
+<text x="478" y="375" font-size="7" fill="rgba(0,212,255,0.3)" font-family="monospace" text-anchor="end">3D MODEL</text>
+
+</svg>
+    </div>
+    <p class="tap-hint">↑ اضغط على أي منطقة للتفاصيل</p>
+  </div>
+
+  <!-- Legend grid -->
+  <div class="legend">
+    <div class="legend-item" onclick="openModal('frontal')">
+      <span class="legend-dot" style="background:#e85d96"></span>
+      <span class="legend-text">الفص الجبهي</span>
+    </div>
+    <div class="legend-item" onclick="openModal('parietal')">
+      <span class="legend-dot" style="background:#f4a432"></span>
+      <span class="legend-text">الفص الجداري</span>
+    </div>
+    <div class="legend-item" onclick="openModal('temporal')">
+      <span class="legend-dot" style="background:#3dd68c"></span>
+      <span class="legend-text">الفص الصدغي</span>
+    </div>
+    <div class="legend-item" onclick="openModal('occipital')">
+      <span class="legend-dot" style="background:#a78bfa"></span>
+      <span class="legend-text">الفص القذالي</span>
+    </div>
+    <div class="legend-item" onclick="openModal('cerebellum')">
+      <span class="legend-dot" style="background:#f87171"></span>
+      <span class="legend-text">المخيخ</span>
+    </div>
+    <div class="legend-item" onclick="openModal('brainstem')">
+      <span class="legend-dot" style="background:#34d399"></span>
+      <span class="legend-text">جذع الدماغ</span>
+    </div>
+    <div class="legend-item" onclick="openModal('insula')">
+      <span class="legend-dot" style="background:#60a5fa"></span>
+      <span class="legend-text">الجزيرة</span>
+    </div>
+    <div class="legend-item" onclick="openModal('corpus')">
+      <span class="legend-dot" style="background:#fbbf24"></span>
+      <span class="legend-text">الجسم الثفني</span>
+    </div>
+  </div>
+
+  <footer>HUMAN BRAIN ATLAS &nbsp;|&nbsp; INTERACTIVE NEUROANATOMY &nbsp;|&nbsp; v2.0</footer>
+</div>
+
+<!-- ══════════════════════════════════════ -->
+<!--  MODAL                                -->
+<!-- ══════════════════════════════════════ -->
+<div class="modal-overlay" id="modalOverlay" onclick="handleOverlayClick(event)">
+  <div class="modal" id="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-header">
+      <span class="modal-color-dot" id="modalDot"></span>
+      <span class="modal-title" id="modalTitle"></span>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body" id="modalBody"></div>
+  </div>
+</div>
+
+<script>
+const DATA = {
+  frontal: {
+    name: "الفص الجبهي", color: "#e85d96", latin: "Frontal Lobe",
+    functions: ["التخطيط واتخاذ القرارات والتفكير المنطقي","التحكم في السلوك والشخصية والعواطف","الكلام والتعبير اللغوي (منطقة بروكا)","التحكم في حركات الجسم الإرادية","الذاكرة العاملة قصيرة المدى"],
+    headacheLocation: "مقدمة الرأس — الجبهة والمنطقة فوق العينين",
+    headacheSymptoms: ["ألم ضاغط أو نابض في الجبهة والمنطقة بين الحاجبين","ثقل أو ضغط فوق العينين مع أو بدون احتقان الجيوب الأنفية","صداع التوتر: شريط ضاغط من الجبهة إلى القفا","صداع الجيوب الأنفية: ألم يشتد عند الانحناء للأمام","صعوبة في التركيز والتهيج المصاحب للألم","قد يصاحبه حساسية للضوء وصعوبة في القراءة"]
+  },
+  parietal: {
+    name: "الفص الجداري", color: "#f4a432", latin: "Parietal Lobe",
+    functions: ["معالجة الحواس الجسدية (اللمس، الحرارة، الألم)","الإحساس بموضع الجسم في الفضاء (proprioception)","تكامل المعلومات الحسية من الجوانب المختلفة","الوعي المكاني وإدراك المسافات","بعض جوانب اللغة والحساب"],
+    headacheLocation: "أعلى الرأس — القمة والمنطقة الجدارية",
+    headacheSymptoms: ["إحساس بالضغط أو الثقل على قمة الرأس","خدر أو وخز في فروة الرأس أو الوجه أو اليدين","صعوبة في تحديد مصدر الألم بدقة","الصداع الناجم عن توتر عضلي في عضلات الرقبة والقمة","قد يصاحبه دوخة خفيفة أو اختلال في التوازن","تفاقم الألم مع الضغط على قمة الرأس"]
+  },
+  temporal: {
+    name: "الفص الصدغي", color: "#3dd68c", latin: "Temporal Lobe",
+    functions: ["معالجة الصوت والسمع","الذاكرة طويلة المدى وتخزينها","فهم اللغة المنطوقة (منطقة فيرنيك)","التعرف على الوجوه والأشياء","معالجة المشاعر عبر اللوزة الدماغية"],
+    headacheLocation: "جانبا الرأس — المنطقة الصدغية فوق الأذنين",
+    headacheSymptoms: ["الصداع النصفي (الشقيقة): أبرز أنواع الصداع الجانبي","ألم نابض شديد في صدغ واحد أو كليهما","رنين أو طنين في الأذن مصاحب للصداع","غثيان وتقيؤ وحساسية شديدة للضوء والصوت","قد يسبقه 'أورا' بصرية: أضواء أو خطوط متعرجة","صداع الشريان الصدغي (التهاب الشريان الخلوي)","ألم عند المضغ أو فتح الفم (مرتبط بالمفصل الصدغي الفكي)"]
+  },
+  occipital: {
+    name: "الفص القذالي", color: "#a78bfa", latin: "Occipital Lobe",
+    functions: ["معالجة المعلومات البصرية الواردة من العينين","التعرف على الألوان والأشكال والحركة","ربط المعلومات البصرية بالذاكرة","إدراك العمق والمسافة البصرية","توجيه حركات العين"],
+    headacheLocation: "مؤخرة الرأس — القفا والمنطقة القذالية",
+    headacheSymptoms: ["ألم في مؤخرة الرأس قد يمتد إلى أعلى الرقبة","صداع عنق الرحم: ينبع من فقرات الرقبة العلوية ويشع للقفا","الصداع القذالي العصبي: ألم حاد كالصعق الكهربائي","اضطرابات بصرية: وميض، اختفاء جزء من المجال البصري","ألم يشتد مع تحريك الرأس أو الضغط على قاعدة الجمجمة","التصلب في عضلات الرقبة المصاحب للصداع"]
+  },
+  cerebellum: {
+    name: "المخيخ", color: "#f87171", latin: "Cerebellum",
+    functions: ["تنسيق الحركات الدقيقة والتوازن","ضبط التوقيت الدقيق للحركات العضلية","تحسين المهارات الحركية المتعلمة","المساهمة في بعض وظائف التفكير واللغة","تنسيق حركات العينين"],
+    headacheLocation: "قاعدة الجمجمة — الجزء الخلفي السفلي",
+    headacheSymptoms: ["ألم في قاعدة الجمجمة يمتد نحو الرقبة","دوخة شديدة وفقدان التوازن مصاحب للصداع","ألم يزداد بالسعال أو الانحناء أو المجهود","قد يصاحبه صعوبة في المشي والتنسيق الحركي","غثيان وقيء مرتبط بمشاكل التوازن","صداع تحت القذالي: ألم محلي أسفل عظمة القفا"]
+  },
+  brainstem: {
+    name: "جذع الدماغ", color: "#34d399", latin: "Brain Stem",
+    functions: ["التحكم في الوظائف الحيوية: التنفس، ضربات القلب، ضغط الدم","تنظيم دورات النوم واليقظة","ممر لكل الإشارات العصبية بين المخ والحبل الشوكي","التحكم في ردود الفعل الآلية كالبلع والسعال","إدارة الوعي ومستوى اليقظة"],
+    headacheLocation: "قاعدة الجمجمة — الرقبة العليا وعمق الرأس",
+    headacheSymptoms: ["الصداع النصفي من النمط القاعدي: دوار وطنين وصعوبة كلام","ألم عميق في قاعدة الجمجمة وعظمة القفا","صداع مصاحب لاضطرابات في ضغط الدم أو التنفس","انسداد فجائي في التفكير أو صعوبة في الكلام","ألم ينتشر على طول الرقبة والكتفين","تحذير: الصداع المصاحب لضعف في الذراعين أو الساقين يستدعي تقييماً طارئاً فورياً"],
+    warning: true
+  },
+  insula: {
+    name: "الجزيرة (الفص الجزيري)", color: "#60a5fa", latin: "Insular Cortex",
+    functions: ["معالجة الألم والحرارة والأحاسيس الداخلية للجسم","دور محوري في الوعي الذاتي والمشاعر","ربط الإحساس الجسدي بالاستجابة العاطفية","المشاركة في إدراك الغثيان","دور في اللغة والنبرة العاطفية للكلام"],
+    headacheLocation: "عمق جانبَي الرأس — خلف الصدغ مباشرةً",
+    headacheSymptoms: ["ألم عميق غامض يصعب تحديده بدقة","ارتباط وثيق بالصداع المصاحب للقلق والتوتر العاطفي","إحساس بعدم الراحة في الجسم كله مصاحب للصداع","قد يصاحبه غثيان أو تغيرات في ضربات القلب","الصداع المصاحب لنوبات القلق والهلع"]
+  },
+  corpus: {
+    name: "الجسم الثفني", color: "#fbbf24", latin: "Corpus Callosum",
+    functions: ["يربط نصفي الكرة المخية الأيمن والأيسر","تنسيق المعلومات والتواصل بين نصفي المخ","دور في التعلم والذاكرة","تكامل المعالجة البصرية والحركية","التنسيق بين اليدين معاً في المهام المعقدة"],
+    headacheLocation: "قمة الرأس — المنطقة الوسطى",
+    headacheSymptoms: ["الصداع المرتبط بتلف الجسم الثفني نادر ومرتبط بأمراض محددة","صداع مركزي في أعلى الرأس بدون جانبية واضحة","قد يصاحب أورام أو تصلب لويحي في هذه المنطقة","صعوبة في تنسيق اليدين معاً مع الصداع دليل تشخيصي مهم","الصداع المصاحب لاضطرابات في تنسيق الجانبين"]
+  }
+};
+
+let activeRegion = null;
+
+function openModal(regionKey) {
+  const d = DATA[regionKey];
+  if (!d) return;
+  if (activeRegion) document.querySelectorAll(`[data-region="${activeRegion}"]`).forEach(el=>el.classList.remove('active'));
+  activeRegion = regionKey;
+  document.querySelectorAll(`[data-region="${regionKey}"]`).forEach(el=>el.classList.add('active'));
+  const dot = document.getElementById('modalDot');
+  dot.style.background = d.color; dot.style.color = d.color;
+  document.getElementById('modalTitle').textContent = d.name;
+  const body = document.getElementById('modalBody');
+  const symptomsHtml = d.headacheSymptoms.map(s=>{
+    if(d.warning && s.startsWith('تحذير')) return `<li style="color:#fca5a5;font-weight:600">${s}</li>`;
+    return `<li>${s}</li>`;
+  }).join('');
+  body.innerHTML = `
+    <div class="info-section">
+      <div class="section-tag"><span class="dot"></span> ANATOMICAL NAME</div>
+      <h3>${d.name} &nbsp;<span style="color:var(--text-muted);font-size:11px;font-weight:400">${d.latin}</span></h3>
+    </div>
+    <div class="info-section">
+      <div class="section-tag"><span class="dot"></span> PRIMARY FUNCTIONS</div>
+      <ul>${d.functions.map(f=>`<li>${f}</li>`).join('')}</ul>
+    </div>
+    <div class="info-section">
+      <div class="section-tag" style="color:#f87171"><span class="dot" style="background:#f87171"></span> HEADACHE PROFILE</div>
+      <div class="headache-location">
+        <span class="pain-icon">🧠</span>
+        <div class="pain-text"><strong style="color:#fff;display:block;margin-bottom:4px">موضع الألم:</strong>${d.headacheLocation}</div>
+      </div>
+      <div style="margin-top:10px">
+        <div class="section-tag" style="color:var(--text-muted);margin-bottom:6px"><span class="dot" style="background:var(--text-muted)"></span> الأعراض المحتملة</div>
+        <ul>${symptomsHtml}</ul>
+      </div>
+    </div>`;
+  document.getElementById('modalOverlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeModal() {
+  document.getElementById('modalOverlay').classList.remove('open');
+  document.body.style.overflow = '';
+  if (activeRegion) {
+    document.querySelectorAll(`[data-region="${activeRegion}"]`).forEach(el=>el.classList.remove('active'));
+    activeRegion = null;
+  }
+}
+
+function handleOverlayClick(e) {
+  if (e.target === document.getElementById('modalOverlay')) closeModal();
+}
+
+let touchStartY = 0;
+document.getElementById('modal').addEventListener('touchstart', e=>{ touchStartY = e.touches[0].clientY; }, {passive:true});
+document.getElementById('modal').addEventListener('touchmove', e=>{ if(e.touches[0].clientY - touchStartY > 60) closeModal(); }, {passive:true});
+document.addEventListener('keydown', e=>{ if(e.key==='Escape') closeModal(); });
+</script>
+</body>
 </html>
